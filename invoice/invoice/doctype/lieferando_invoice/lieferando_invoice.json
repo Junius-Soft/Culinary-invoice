@@ -1,0 +1,551 @@
+{
+ "actions": [],
+ "autoname": "field:invoice_number",
+ "creation": "2025-01-27 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "invoice_section",
+  "invoice_number",
+  "invoice_date",
+  "period_start",
+  "col_break_1",
+  "period_end",
+  "status",
+  "supplier_section",
+  "supplier_name",
+  "supplier_address",
+  "col_break_2",
+  "supplier_email",
+  "supplier_phone",
+  "supplier_ust_idnr",
+  "supplier_bank_name",
+  "supplier_iban",
+  "customer_section",
+  "restaurant_name",
+  "customer_number",
+  "restaurant_address",
+  "col_break_3",
+  "customer_company",
+  "customer_bank_iban",
+  "orders_section",
+  "total_orders",
+  "total_revenue",
+  "col_break_4",
+  "online_paid_orders",
+  "online_paid_amount",
+  "fees_section",
+  "service_fee_rate",
+  "service_fee_amount",
+  "admin_fee_amount",
+  "amounts_section",
+  "tax_rate",
+  "col_break_amounts_1",
+  "subtotal",
+  "col_break_amounts_1b",
+  "tax_amount",
+  "section_break_amounts_2",
+  "paid_online_payments",
+  "col_break_amounts_2",
+  "outstanding_amount",
+  "total_section_break",
+  "total_amount",
+  "payout_section",
+  "payout_amount",
+  "outstanding_balance",
+  "orders_detail_section",
+  "ausstehende_am_datum",
+  "ausstehende_onlinebezahlungen_betrag",
+  "rechnungsausgleich_betrag",
+  "einzelauf_total_break",
+  "auszahlung_gesamt",
+  "metadata_section",
+  "pdf_file",
+  "email_subject",
+  "email_from",
+  "col_break_7",
+  "received_date",
+  "processed_date",
+  "extraction_confidence",
+  "raw_text",
+  "notes_section",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "invoice_section",
+   "fieldtype": "Section Break",
+   "label": "Rechnung Informationen"
+  },
+  {
+   "bold": 1,
+   "fieldname": "invoice_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Rechnungsnummer",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "invoice_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Datum",
+   "reqd": 1
+  },
+  {
+   "description": "Abrechnungszeitraum Start",
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "label": "Zeitraum Von"
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Abrechnungszeitraum Ende",
+   "fieldname": "period_end",
+   "fieldtype": "Date",
+   "label": "Zeitraum Bis"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nPending\nPaid\nOverdue\nCancelled"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "supplier_section",
+   "fieldtype": "Section Break",
+   "label": "Lieferant (yd.yourdelivery GmbH)"
+  },
+  {
+   "default": "yd.yourdelivery GmbH",
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "label": "Firmenname",
+   "reqd": 1
+  },
+  {
+   "default": "Cuvrystr. 50, 52, 54 / Schlesische Str. 34\n10997 Berlin\nDeutschland",
+   "fieldname": "supplier_address",
+   "fieldtype": "Small Text",
+   "label": "Adresse"
+  },
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "vip-partner@lieferando.de",
+   "fieldname": "supplier_email",
+   "fieldtype": "Data",
+   "label": "E-Mail",
+   "options": "Email"
+  },
+  {
+   "default": "+49 (0) 30 208 495 144",
+   "fieldname": "supplier_phone",
+   "fieldtype": "Data",
+   "label": "Telefon"
+  },
+  {
+   "default": "DE266464862",
+   "fieldname": "supplier_ust_idnr",
+   "fieldtype": "Data",
+   "label": "USt.-IdNr."
+  },
+  {
+   "default": "ING-DiBa AG",
+   "fieldname": "supplier_bank_name",
+   "fieldtype": "Data",
+   "label": "Bank"
+  },
+  {
+   "default": "DE63 5002 1000 0210 1663 87",
+   "fieldname": "supplier_iban",
+   "fieldtype": "Data",
+   "label": "IBAN"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "customer_section",
+   "fieldtype": "Section Break",
+   "label": "Kunde (Restaurant)"
+  },
+  {
+   "fieldname": "restaurant_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Restaurant Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Kundennummer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "restaurant_address",
+   "fieldtype": "Small Text",
+   "label": "Adresse"
+  },
+  {
+   "fieldname": "col_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "z.B. CC CULINARY COLLECTIVE GmbH",
+   "fieldname": "customer_company",
+   "fieldtype": "Data",
+   "label": "Firma"
+  },
+  {
+   "description": "Bankkonto für Auszahlung",
+   "fieldname": "customer_bank_iban",
+   "fieldtype": "Data",
+   "label": "Auszahlungs-IBAN"
+  },
+  {
+   "fieldname": "orders_section",
+   "fieldtype": "Section Break",
+   "label": "Bestellungen"
+  },
+  {
+   "default": "0",
+   "description": "Gesamtanzahl der Bestellungen",
+   "fieldname": "total_orders",
+   "fieldtype": "Int",
+   "label": "Anzahl Bestellungen"
+  },
+  {
+   "description": "Gesamtumsatz im Abrechnungszeitraum",
+   "fieldname": "total_revenue",
+   "fieldtype": "Currency",
+   "label": "Umsatz (Zeitraum)",
+   "precision": "2"
+  },
+  {
+   "fieldname": "col_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "online_paid_orders",
+   "fieldtype": "Int",
+   "label": "Online Bezahlte Bestellungen"
+  },
+  {
+   "fieldname": "online_paid_amount",
+   "fieldtype": "Currency",
+   "label": "Online Bezahlter Betrag",
+   "precision": "2"
+  },
+  {
+   "fieldname": "fees_section",
+   "fieldtype": "Section Break",
+   "label": "Gebühren"
+  },
+  {
+   "default": "30",
+   "fieldname": "service_fee_rate",
+   "fieldtype": "Percent",
+   "label": "Servicegebühr (%)"
+  },
+  {
+   "fieldname": "service_fee_amount",
+   "fieldtype": "Currency",
+   "label": "Servicegebühr Betrag",
+   "precision": "2",
+   "description": "30% von Umsatz (z.B. 30% von €24,00 = €7,20)"
+  },
+  {
+   "fieldname": "col_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Online-Zahlungen Verwaltungsgebühr (z.B. €0,64 x 1)",
+   "fieldname": "admin_fee_amount",
+   "fieldtype": "Currency",
+   "label": "Verwaltungsgebühr",
+   "precision": "2"
+  },
+  {
+   "fieldname": "amounts_section",
+   "fieldtype": "Section Break",
+   "label": "Beträge"
+  },
+  {
+   "default": "19",
+   "fieldname": "tax_rate",
+   "fieldtype": "Percent",
+   "label": "MwSt. (%)"
+  },
+  {
+   "fieldname": "col_break_amounts_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "bold": 1,
+   "fieldname": "subtotal",
+   "fieldtype": "Currency",
+   "label": "Zwischensumme",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "col_break_amounts_1b",
+   "fieldtype": "Column Break"
+  },
+  {
+   "bold": 1,
+   "fieldname": "tax_amount",
+   "fieldtype": "Currency",
+   "label": "MwSt. Betrag",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_amounts_2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "bold": 1,
+   "fieldname": "paid_online_payments",
+   "fieldtype": "Currency",
+   "label": "Verrechnet mit Online-Zahlungen",
+   "precision": "2"
+  },
+  {
+   "fieldname": "col_break_amounts_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "bold": 1,
+   "fieldname": "outstanding_amount",
+   "fieldtype": "Currency",
+   "label": "Offener Rechnungsbetrag",
+   "precision": "2"
+  },
+  {
+   "fieldname": "total_section_break",
+   "fieldtype": "Section Break",
+   "label": ""
+  },
+  {
+   "bold": 1,
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "═══ GESAMTBETRAG DIESER RECHNUNG ═══",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "payout_section",
+   "fieldtype": "Section Break",
+   "label": "Auszahlung"
+  },
+  {
+   "description": "Auszahlung auf das Bankkonto",
+   "fieldname": "payout_amount",
+   "fieldtype": "Currency",
+   "label": "Auszahlungsbetrag",
+   "precision": "2"
+  },
+  {
+   "fieldname": "outstanding_balance",
+   "fieldtype": "Currency",
+   "label": "Ausstehende Onlinebezahlungen",
+   "precision": "2"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "orders_detail_section",
+   "fieldtype": "Section Break",
+   "label": "Einzelauflistung"
+  },
+  {
+   "fieldname": "ausstehende_am_datum",
+   "fieldtype": "Date",
+   "label": "Ausstehende Onlinebezahlungen am",
+   "read_only": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "ausstehende_onlinebezahlungen_betrag",
+   "fieldtype": "Currency",
+   "label": "Ausstehende Onlinebezahlungen",
+   "precision": 2,
+   "read_only": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "rechnungsausgleich_betrag",
+   "fieldtype": "Currency",
+   "label": "Rechnungsausgleich (mit Rechnungsnummer)",
+   "precision": 2,
+   "read_only": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "einzelauf_total_break",
+   "fieldtype": "Section Break",
+   "label": ""
+  },
+  {
+   "fieldname": "auszahlung_gesamt",
+   "fieldtype": "Currency",
+   "label": "═══ GESAMTAUSZAHLUNG ═══",
+   "precision": 2,
+   "read_only": 1,
+   "bold": 1,
+   "description": "Ausstehende Onlinebezahlungen - Rechnungsausgleich"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "metadata_section",
+   "fieldtype": "Section Break",
+   "label": "Email & PDF Information"
+  },
+  {
+   "fieldname": "pdf_file",
+   "fieldtype": "Attach",
+   "label": "Original PDF"
+  },
+  {
+   "fieldname": "email_subject",
+   "fieldtype": "Data",
+   "label": "Email Subject",
+   "read_only": 1
+  },
+  {
+   "fieldname": "email_from",
+   "fieldtype": "Data",
+   "label": "Email From",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Now",
+   "fieldname": "received_date",
+   "fieldtype": "Datetime",
+   "label": "Email Empfangen",
+   "read_only": 1
+  },
+  {
+   "fieldname": "processed_date",
+   "fieldtype": "Datetime",
+   "label": "Verarbeitet Am",
+   "read_only": 1
+  },
+  {
+   "description": "PDF Parsing Genauigkeit",
+   "fieldname": "extraction_confidence",
+   "fieldtype": "Percent",
+   "label": "Extraction Confidence",
+   "read_only": 1
+  },
+  {
+   "fieldname": "raw_text",
+   "fieldtype": "Long Text",
+   "hidden": 1,
+   "label": "Raw PDF Text",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notizen"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Bemerkungen"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Lieferando Invoice",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-01-27 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Invoice",
+ "name": "Lieferando Invoice",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
+

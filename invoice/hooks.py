@@ -245,3 +245,18 @@ app_license = "mit"
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
+doc_events = {
+	"Communication": {
+		"after_insert": "invoice.api.invoice_email_handler.process_invoice_email",
+		"on_update": "invoice.api.invoice_email_handler.process_invoice_email"
+	}
+}
+
+# Scheduled Tasks
+# ---------------
+
+scheduler_events = {
+	"all": [
+		"invoice.api.email_tasks.sync_gmail_invoices"
+	]
+}
