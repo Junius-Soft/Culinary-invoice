@@ -15,10 +15,9 @@ def sync_gmail_invoices():
         # Tüm aktif Email Account'ları al
         email_accounts = frappe.get_all("Email Account",
             filters={
-                "enable_incoming": 1,
-                "email_id": "helicase136@gmail.com"  # Gmail Fatura hesabı
+                "enable_incoming": 1  # Sadece gelen email aktif olan hesapları al
             },
-            fields=["name"]
+            fields=["name", "email_id"]
         )
         
         if not email_accounts:
@@ -28,14 +27,14 @@ def sync_gmail_invoices():
         # Her hesap için email çek
         for account in email_accounts:
             try:
-                print(f">>>>>> [SCHEDULER] Email çekiliyor: {account.name}")
+                print(f">>>>>> [SCHEDULER] Email çekiliyor: {account.email_id} ({account.name})")
                 
                 email_doc = frappe.get_doc("Email Account", account.name)
                 
                 # Email'leri çek
                 email_doc.receive()
                 
-                print(f"✅ [SCHEDULER] {account.name} için email'ler çekildi")
+                print(f"✅ [SCHEDULER] {account.email_id} için email'ler çekildi")
                 
             except Exception as e:
                 print(f"❌ [SCHEDULER] {account.name} hatası: {str(e)}")
@@ -53,4 +52,3 @@ def sync_gmail_invoices():
             title="Scheduler Email Sync Error",
             message=str(e)
         )
-

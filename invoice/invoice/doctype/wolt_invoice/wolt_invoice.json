@@ -1,0 +1,496 @@
+{
+ "actions": [],
+ "autoname": "field:invoice_number",
+ "creation": "2025-11-25 12:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "invoice_section",
+  "invoice_number",
+  "invoice_date",
+  "period_start",
+  "col_break_period",
+  "period_end",
+  "status",
+  "supplier_section",
+  "supplier_name",
+  "supplier_vat",
+  "supplier_address",
+  "customer_section",
+  "restaurant_name",
+  "customer_number",
+  "restaurant_address",
+  "goods_section",
+  "goods_net_7",
+  "goods_vat_7",
+  "goods_gross_7",
+  "col_break_goods",
+  "goods_net_19",
+  "goods_vat_19",
+  "goods_gross_19",
+  "goods_totals_section",
+  "goods_net_total",
+  "goods_vat_total",
+  "goods_gross_total",
+  "distribution_section",
+  "distribution_net_total",
+  "distribution_vat_total",
+  "distribution_gross_total",
+  "netprice_section",
+  "netprice_net_7",
+  "netprice_vat_7",
+  "netprice_gross_7",
+  "col_break_netprice",
+  "netprice_net_19",
+  "netprice_vat_19",
+  "netprice_gross_19",
+  "netprice_totals_section",
+  "netprice_net_total",
+  "netprice_vat_total",
+  "netprice_gross_total",
+  "end_amount_section",
+  "end_amount_net",
+  "end_amount_vat",
+  "end_amount_gross",
+  "metadata_section",
+  "pdf_file",
+  "email_subject",
+  "email_from",
+  "col_break_metadata",
+  "received_date",
+  "processed_date",
+  "extraction_confidence",
+  "raw_text",
+  "notes_section",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "invoice_section",
+   "fieldtype": "Section Break",
+   "label": "Rechnung"
+  },
+  {
+   "fieldname": "invoice_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Rechnungsnummer",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "invoice_date",
+   "fieldtype": "Date",
+   "label": "Rechnungsdatum",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "label": "Leistungszeitraum (Ba\u015flang\u0131\u00e7)"
+  },
+  {
+   "fieldname": "col_break_period",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "period_end",
+   "fieldtype": "Date",
+   "label": "Leistungszeitraum (Biti\u015f)"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Durum",
+   "options": "Draft\nSubmitted\nCancelled"
+  },
+  {
+   "fieldname": "supplier_section",
+   "fieldtype": "Section Break",
+   "label": "Wolt"
+  },
+  {
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "label": "\u015eirket"
+  },
+  {
+   "fieldname": "supplier_vat",
+   "fieldtype": "Data",
+   "label": "USt.-ID"
+  },
+  {
+   "fieldname": "supplier_address",
+   "fieldtype": "Small Text",
+   "label": "Adres"
+  },
+  {
+   "fieldname": "customer_section",
+   "fieldtype": "Section Break",
+   "label": "Restoran"
+  },
+  {
+   "fieldname": "restaurant_name",
+   "fieldtype": "Data",
+   "label": "Restoran Ad\u0131"
+  },
+  {
+   "fieldname": "customer_number",
+   "fieldtype": "Data",
+   "label": "M\u00fc\u015fteri / \u0130\u015f ID"
+  },
+  {
+   "fieldname": "restaurant_address",
+   "fieldtype": "Small Text",
+   "label": "Adres"
+  },
+  {
+   "fieldname": "goods_section",
+   "fieldtype": "Section Break",
+   "label": "Sat\u0131lan \u00dcr\u00fcnler (A)"
+  },
+  {
+   "fieldname": "goods_net_7",
+   "fieldtype": "Currency",
+   "label": "Net %7",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "goods_vat_7",
+   "fieldtype": "Currency",
+   "label": "MwSt %7",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "goods_gross_7",
+   "fieldtype": "Currency",
+   "label": "Br\u00fct %7",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_goods",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "goods_net_19",
+   "fieldtype": "Currency",
+   "label": "Net %19",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "goods_vat_19",
+   "fieldtype": "Currency",
+   "label": "MwSt %19",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "goods_gross_19",
+   "fieldtype": "Currency",
+   "label": "Br\u00fct %19",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "goods_totals_section",
+   "fieldtype": "Section Break",
+   "label": "Toplam Sat\u0131\u015f"
+  },
+  {
+   "bold": 1,
+   "fieldname": "goods_net_total",
+   "fieldtype": "Currency",
+   "label": "Net (A)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "goods_vat_total",
+   "fieldtype": "Currency",
+   "label": "MwSt (A)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "goods_gross_total",
+   "fieldtype": "Currency",
+   "label": "Br\u00fct (A)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "distribution_section",
+   "fieldtype": "Section Break",
+   "label": "Wolt Komisyon (B)"
+  },
+  {
+   "fieldname": "distribution_net_total",
+   "fieldtype": "Currency",
+   "label": "Net (B)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "distribution_vat_total",
+   "fieldtype": "Currency",
+   "label": "MwSt (B)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "distribution_gross_total",
+   "fieldtype": "Currency",
+   "label": "Br\u00fct (B)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "netprice_section",
+   "fieldtype": "Section Break",
+   "label": "Nettopreis (A - B)"
+  },
+  {
+   "fieldname": "netprice_net_7",
+   "fieldtype": "Currency",
+   "label": "Net %7",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "netprice_vat_7",
+   "fieldtype": "Currency",
+   "label": "MwSt %7",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "netprice_gross_7",
+   "fieldtype": "Currency",
+   "label": "Br\u00fct %7",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_netprice",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "netprice_net_19",
+   "fieldtype": "Currency",
+   "label": "Net %19",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "netprice_vat_19",
+   "fieldtype": "Currency",
+   "label": "MwSt %19",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "netprice_gross_19",
+   "fieldtype": "Currency",
+   "label": "Br\u00fct %19",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "netprice_totals_section",
+   "fieldtype": "Section Break",
+   "label": "Nettopreis Toplam"
+  },
+  {
+   "bold": 1,
+   "fieldname": "netprice_net_total",
+   "fieldtype": "Currency",
+   "label": "Net (A-B)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "netprice_vat_total",
+   "fieldtype": "Currency",
+   "label": "MwSt (A-B)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "netprice_gross_total",
+   "fieldtype": "Currency",
+   "label": "Br\u00fct (A-B)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "end_amount_section",
+   "fieldtype": "Section Break",
+   "label": "Endbetrag"
+  },
+  {
+   "bold": 1,
+   "fieldname": "end_amount_net",
+   "fieldtype": "Currency",
+   "label": "Net",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "end_amount_vat",
+   "fieldtype": "Currency",
+   "label": "MwSt",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "end_amount_gross",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Br\u00fct",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "metadata_section",
+   "fieldtype": "Section Break",
+   "label": "Kaynak"
+  },
+  {
+   "fieldname": "pdf_file",
+   "fieldtype": "Attach",
+   "label": "PDF"
+  },
+  {
+   "fieldname": "email_subject",
+   "fieldtype": "Data",
+   "label": "Email Subject",
+   "read_only": 1
+  },
+  {
+   "fieldname": "email_from",
+   "fieldtype": "Data",
+   "label": "Email From",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_metadata",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "received_date",
+   "fieldtype": "Datetime",
+   "label": "Received",
+   "read_only": 1
+  },
+  {
+   "fieldname": "processed_date",
+   "fieldtype": "Datetime",
+   "label": "Processed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "extraction_confidence",
+   "fieldtype": "Int",
+   "label": "Confidence",
+   "read_only": 1
+  },
+  {
+   "fieldname": "raw_text",
+   "fieldtype": "Long Text",
+   "label": "Ham Metin",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notlar"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "A\u00e7\u0131klamalar"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Wolt Invoice",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-11-25 20:15:04.837488",
+ "modified_by": "Administrator",
+ "module": "invoice",
+ "name": "Wolt Invoice",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

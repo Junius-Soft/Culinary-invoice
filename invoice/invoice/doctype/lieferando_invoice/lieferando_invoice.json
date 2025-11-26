@@ -1,7 +1,7 @@
 {
  "actions": [],
  "autoname": "field:invoice_number",
- "creation": "2025-01-27 00:00:00.000000",
+ "creation": "2025-10-30 20:04:56.336025",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -71,7 +71,8 @@
   "raw_text",
   "notes_section",
   "notes",
-  "amended_from"
+  "amended_from",
+  "col_break_5"
  ],
  "fields": [
   {
@@ -211,7 +212,7 @@
    "label": "Firma"
   },
   {
-   "description": "Bankkonto für Auszahlung",
+   "description": "Bankkonto f\u00fcr Auszahlung",
    "fieldname": "customer_bank_iban",
    "fieldtype": "Data",
    "label": "Auszahlungs-IBAN"
@@ -254,36 +255,36 @@
   {
    "fieldname": "fees_section",
    "fieldtype": "Section Break",
-   "label": "Gebühren"
+   "label": "Geb\u00fchren"
   },
   {
    "default": "30",
    "fieldname": "service_fee_rate",
    "fieldtype": "Percent",
-   "label": "Servicegebühr (%)"
+   "label": "Servicegeb\u00fchr (%)"
   },
   {
+   "description": "30% von Umsatz (z.B. 30% von \u20ac24,00 = \u20ac7,20)",
    "fieldname": "service_fee_amount",
    "fieldtype": "Currency",
-   "label": "Servicegebühr Betrag",
-   "precision": "2",
-   "description": "30% von Umsatz (z.B. 30% von €24,00 = €7,20)"
+   "label": "Servicegeb\u00fchr Betrag",
+   "precision": "2"
   },
   {
    "fieldname": "col_break_5",
    "fieldtype": "Column Break"
   },
   {
-   "description": "Online-Zahlungen Verwaltungsgebühr (z.B. €0,64 x 1)",
+   "description": "Online-Zahlungen Verwaltungsgeb\u00fchr (z.B. \u20ac0,64 x 1)",
    "fieldname": "admin_fee_amount",
    "fieldtype": "Currency",
-   "label": "Verwaltungsgebühr",
+   "label": "Verwaltungsgeb\u00fchr",
    "precision": "2"
   },
   {
    "fieldname": "amounts_section",
    "fieldtype": "Section Break",
-   "label": "Beträge"
+   "label": "Betr\u00e4ge"
   },
   {
    "default": "19",
@@ -339,15 +340,14 @@
   },
   {
    "fieldname": "total_section_break",
-   "fieldtype": "Section Break",
-   "label": ""
+   "fieldtype": "Section Break"
   },
   {
    "bold": 1,
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "═══ GESAMTBETRAG DIESER RECHNUNG ═══",
+   "label": "\u2550\u2550\u2550 GESAMTBETRAG DIESER RECHNUNG \u2550\u2550\u2550",
    "precision": "2",
    "reqd": 1
   },
@@ -377,41 +377,40 @@
    "label": "Einzelauflistung"
   },
   {
+   "bold": 1,
    "fieldname": "ausstehende_am_datum",
    "fieldtype": "Date",
    "label": "Ausstehende Onlinebezahlungen am",
-   "read_only": 1,
-   "bold": 1
+   "read_only": 1
   },
   {
+   "bold": 1,
    "fieldname": "ausstehende_onlinebezahlungen_betrag",
    "fieldtype": "Currency",
    "label": "Ausstehende Onlinebezahlungen",
-   "precision": 2,
-   "read_only": 1,
-   "bold": 1
+   "precision": "2",
+   "read_only": 1
   },
   {
+   "bold": 1,
    "fieldname": "rechnungsausgleich_betrag",
    "fieldtype": "Currency",
    "label": "Rechnungsausgleich (mit Rechnungsnummer)",
-   "precision": 2,
-   "read_only": 1,
-   "bold": 1
+   "precision": "2",
+   "read_only": 1
   },
   {
    "fieldname": "einzelauf_total_break",
-   "fieldtype": "Section Break",
-   "label": ""
+   "fieldtype": "Section Break"
   },
   {
+   "bold": 1,
+   "description": "Ausstehende Onlinebezahlungen - Rechnungsausgleich",
    "fieldname": "auszahlung_gesamt",
    "fieldtype": "Currency",
-   "label": "═══ GESAMTAUSZAHLUNG ═══",
-   "precision": 2,
-   "read_only": 1,
-   "bold": 1,
-   "description": "Ausstehende Onlinebezahlungen - Rechnungsausgleich"
+   "label": "\u2550\u2550\u2550 GESAMTAUSZAHLUNG \u2550\u2550\u2550",
+   "precision": "2",
+   "read_only": 1
   },
   {
    "collapsible": 1,
@@ -493,9 +492,9 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-01-27 00:00:00.000000",
+ "modified": "2025-11-25 20:15:04.301507",
  "modified_by": "Administrator",
- "module": "Invoice",
+ "module": "invoice",
  "name": "Lieferando Invoice",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
@@ -548,4 +547,3 @@
  "states": [],
  "track_changes": 1
 }
-
