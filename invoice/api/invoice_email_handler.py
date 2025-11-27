@@ -1,50 +1,40 @@
-"""
-Gmail'den gelen fatura email'lerini otomatik işleyen modül
-"""
-
 import frappe
 import re
 from datetime import datetime
 
+logger = frappe.logger("invoice.email_handler", allow_site=frappe.local.site)
+
 def process_invoice_email(doc, method=None):
-    """
-    Communication DocType'ına gelen email'leri yakala
-    Subject'te 'invoice' veya 'fatura' varsa PDF Invoice oluştur
+    """Communication DocType'ına gelen email'leri yakala ve fatura oluştur"""
+    print(f"[INVOICE] Email işleme başladı: {doc.subject} (Communication: {doc.name})")
+    logger.info(f"Email işleme başladı: {doc.subject} (Communication: {doc.name})")
     
-    Hook: Communication -> after_insert, on_update
-    """
+    stats = {
+        "total_detected": 0,
+        "already_processed": 0,
+        "newly_processed": 0,
+        "errors": 0,
+        "invoices_created": []
+    }
+    
     try:
-        # Sadece gelen email'leri işle
-        if doc.communication_type != "Communication":
+        if doc.communication_type != "Communication" or doc.sent_or_received != "Received":
+            print(f"[INVOICE] Email atlandı - type: {doc.communication_type}, received: {doc.sent_or_received}")
+            logger.info(f"Email atlandı - type: {doc.communication_type}, received: {doc.sent_or_received}")
             return
         
-        if doc.sent_or_received != "Received":
-            return
-        
-        # Bu email zaten işlendi mi kontrol et (Lieferando + Wolt)
         duplicate_filters = {
             "email_from": doc.sender,
             "email_subject": doc.subject,
             "received_date": doc.creation
         }
-        existing_lieferando = frappe.db.exists("Lieferando Invoice", duplicate_filters)
-        existing_wolt = frappe.db.exists("Wolt Invoice", duplicate_filters)
         
-        if existing_lieferando or existing_wolt:
-            print(f">>>>>> Email zaten işlenmiş, atlandı: {doc.subject}")
+        if frappe.db.exists("Lieferando Invoice", duplicate_filters) or \
+           frappe.db.exists("Wolt Invoice", duplicate_filters):
+            stats["already_processed"] = 1
+            show_summary_notification(stats, doc.subject)
             return
         
-        # Subject kontrolü - invoice/fatura içeriyor mu?
-        subject = (doc.subject or "").lower()
-        keywords = ["invoice", "fatura", "rechnung", "facture", "bill"]
-        
-        if not any(keyword in subject for keyword in keywords):
-            print(f">>>>>> Email '{doc.subject}' fatura değil, atlandı")
-            return
-        
-        print(f">>>>>> FATURA EMAIL'İ ALGILANDI: {doc.subject}")
-        
-        # PDF attachments'ları bul
         attachments = frappe.get_all("File",
             filters={
                 "attached_to_doctype": "Communication",
@@ -53,37 +43,63 @@ def process_invoice_email(doc, method=None):
             fields=["name", "file_url", "file_name", "file_size"]
         )
         
-        # DEBUG: Tüm attachments'ları göster
-        print(f">>>>>> Toplam {len(attachments)} attachment bulundu")
-        for att in attachments:
-            print(f">>>>>> Attachment: name={att.get('name')}, file_name={att.get('file_name')}, file_url={att.get('file_url')}")
-        
-        # Sadece PDF'leri filtrele
         pdf_attachments = [
             att for att in attachments 
             if att.get('file_name') and att.get('file_name').lower().endswith('.pdf')
         ]
         
-        if not pdf_attachments:
-            print(f">>>>>> Email'de PDF bulunamadı: {doc.subject}")
-            print(f">>>>>> Kontrol edilen {len(attachments)} attachment'tan hiçbiri PDF değil")
+        subject = (doc.subject or "").lower()
+        keywords = ["invoice", "fatura", "rechnung", "facture", "bill"]
+        has_invoice_subject = any(keyword in subject for keyword in keywords)
+        
+        has_rechnung_pdf = any(
+            (pdf.get('file_name') or "").lower().startswith("rechnung_und")
+            for pdf in pdf_attachments
+        )
+        
+        if not has_invoice_subject and not has_rechnung_pdf:
+            print(f"[INVOICE] Email atlandı - fatura değil: {doc.subject}")
+            logger.info(f"Email atlandı - fatura değil: {doc.subject}")
             return
         
-        print(f">>>>>> {len(pdf_attachments)} adet PDF bulundu")
+        print(f"[INVOICE] ✅ Fatura email'i tespit edildi: {doc.subject}")
+        logger.info(f"Fatura email'i tespit edildi: {doc.subject}")
+        stats["total_detected"] = 1
         
-        # Her PDF için Invoice oluştur
+        if not pdf_attachments:
+            stats["errors"] = 1
+            show_summary_notification(stats, doc.subject)
+            return
+        
         for pdf in pdf_attachments:
             try:
-                create_invoice_from_pdf(doc, pdf)
+                invoice = create_invoice_from_pdf(doc, pdf)
+                if invoice:
+                    stats["newly_processed"] += 1
+                    stats["invoices_created"].append({
+                        "doctype": invoice.doctype,
+                        "name": invoice.name,
+                        "invoice_number": getattr(invoice, "invoice_number", "N/A")
+                    })
+                else:
+                    stats["already_processed"] += 1
             except Exception as e:
+                stats["errors"] += 1
                 frappe.log_error(
                     title="Invoice PDF Processing Error",
                     message=f"PDF: {pdf.file_name}\nError: {str(e)}\n{frappe.get_traceback()}"
                 )
         
         frappe.db.commit()
+        print(f"[INVOICE] Email işleme tamamlandı. Stats: {stats}")
+        logger.info(f"Email işleme tamamlandı. Stats: {stats}")
+        print(f"[INVOICE] Bildirim fonksiyonu çağrılıyor...")
+        show_summary_notification(stats, doc.subject)
+        print(f"[INVOICE] Bildirim fonksiyonu tamamlandı.")
         
     except Exception as e:
+        print(f"[INVOICE] ❌ Email işleme hatası: {str(e)}")
+        logger.error(f"Email işleme hatası: {str(e)}")
         frappe.log_error(
             title="Invoice Email Processing Error",
             message=f"Error: {str(e)}\n{frappe.get_traceback()}"
@@ -91,21 +107,8 @@ def process_invoice_email(doc, method=None):
 
 
 def create_invoice_from_pdf(communication_doc, pdf_attachment):
-    """
-    PDF'den Invoice kaydı oluştur
-    """
-    print(f">>>>>> İşleniyor: {pdf_attachment.file_name}")
-    
+    """PDF'den Invoice kaydı oluştur"""
     extracted_data = extract_invoice_data_from_pdf(pdf_attachment)
-    
-    # ====== ÇIKARILAN TÜM VERİLERİ GÖSTER ======
-    print("\n" + "="*80)
-    print("📄 PDF'DEN ÇIKARILAN TÜM VERİLER:")
-    print("="*80)
-    import json
-    print(json.dumps(extracted_data, indent=2, ensure_ascii=False, default=str))
-    print("="*80 + "\n")
-    
     platform = extracted_data.get("platform") or "lieferando"
     
     if platform == "wolt":
@@ -115,13 +118,10 @@ def create_invoice_from_pdf(communication_doc, pdf_attachment):
 
 
 def create_lieferando_invoice_doc(communication_doc, pdf_attachment, extracted_data):
-    """
-    Lieferando Invoice kaydı oluştur
-    """
+    """Lieferando Invoice kaydı oluştur"""
     invoice_number = extracted_data.get("invoice_number")
     if invoice_number and frappe.db.exists("Lieferando Invoice", {"invoice_number": invoice_number}):
-        print(f">>>>>> {invoice_number} zaten mevcut, atlandı.")
-        return
+        return None
     
     invoice = frappe.get_doc({
         "doctype": "Lieferando Invoice",
@@ -171,19 +171,17 @@ def create_lieferando_invoice_doc(communication_doc, pdf_attachment, extracted_d
         invoice.order_items = order_items
     
     invoice.insert(ignore_permissions=True, ignore_mandatory=True)
-    print(f"✅ Lieferando Invoice oluşturuldu: {invoice.name}")
     attach_pdf_to_invoice(pdf_attachment, invoice.name, "Lieferando Invoice")
+    notify_invoice_created("Lieferando Invoice", invoice.name, invoice.invoice_number, communication_doc.subject)
+    
     return invoice
 
 
 def create_wolt_invoice_doc(communication_doc, pdf_attachment, extracted_data):
-    """
-    Wolt Invoice kaydı oluştur
-    """
+    """Wolt Invoice kaydı oluştur"""
     invoice_number = extracted_data.get("invoice_number")
     if invoice_number and frappe.db.exists("Wolt Invoice", {"invoice_number": invoice_number}):
-        print(f">>>>>> {invoice_number} zaten mevcut (Wolt), atlandı.")
-        return
+        return None
     
     invoice = frappe.get_doc({
         "doctype": "Wolt Invoice",
@@ -231,95 +229,77 @@ def create_wolt_invoice_doc(communication_doc, pdf_attachment, extracted_data):
     })
     
     invoice.insert(ignore_permissions=True, ignore_mandatory=True)
-    print(f"✅ Wolt Invoice oluşturuldu: {invoice.name}")
     attach_pdf_to_invoice(pdf_attachment, invoice.name, "Wolt Invoice")
+    notify_invoice_created("Wolt Invoice", invoice.name, invoice.invoice_number, communication_doc.subject)
+    
     return invoice
 
 
 def extract_invoice_data_from_pdf(pdf_attachment):
-    """
-    PDF'den fatura verilerini çıkar
-    Basit regex tabanlı çıkarım (gelişmiş AI kullanılabilir)
-    """
+    """PDF'den fatura verilerini çıkar"""
     try:
         import PyPDF2
-        import io
         
-        # PDF içeriğini oku
         file_doc = frappe.get_doc("File", pdf_attachment.name)
         file_path = file_doc.get_full_path()
         
-        # PDF'i aç
         with open(file_path, 'rb') as pdf_file:
             pdf_reader = PyPDF2.PdfReader(pdf_file)
-            
-            # Tüm sayfalardan text çıkar
-            full_text = ""
-            for page in pdf_reader.pages:
-                full_text += page.extract_text()
-                
-        print(f">>>>>> PDF'den çıkarılan metin: {full_text}")
-        print(f">>>>>> PDF'den {len(full_text)} karakter metin çıkarıldı")
+            full_text = "".join(page.extract_text() for page in pdf_reader.pages)
         
-        # Regex ile veri çıkar
         data = {
             "raw_text": full_text,
-            "confidence": 60  # Varsayılan güven skoru
+            "confidence": 60
         }
         
-        # Invoice Number - Lieferando özel: "Rechnungsnummer: 313935291"
         invoice_patterns = [
-            r'Rechnungsnummer[\s:]*([A-Z0-9\/\-]+)',  # Genel format
+            r'Rechnungsnummer[\s:]*([A-Z0-9\/\-]+)',
             r'Invoice\s*(?:Number|No|#)[\s:]*([A-Z0-9\-]+)',
             r'Rechnung\s*(?:Nr|#)[\s:]*([A-Z0-9\-]+)',
             r'Fatura\s*(?:No|#)[\s:]*([A-Z0-9\-]+)',
         ]
+        
         for pattern in invoice_patterns:
             match = re.search(pattern, full_text, re.IGNORECASE)
             if match:
                 data["invoice_number"] = match.group(1).strip()
                 break
         
-        # Date (çeşitli formatlar)
         date_patterns = [
             r'Date[\s:]*(\d{1,2}[\.\/\-]\d{1,2}[\.\/\-]\d{2,4})',
             r'Datum[\s:]*(\d{1,2}[\.\/\-]\d{1,2}[\.\/\-]\d{2,4})',
             r'(\d{1,2}[\.\/\-]\d{1,2}[\.\/\-]\d{2,4})',
         ]
+        
         for pattern in date_patterns:
             match = re.search(pattern, full_text)
             if match:
-                date_str = match.group(1)
                 try:
-                    # Tarih formatını parse et
-                    data["invoice_date"] = parse_date(date_str)
+                    data["invoice_date"] = parse_date(match.group(1))
                     break
                 except:
                     pass
         
-        # Total Amount (çeşitli formatlar)
         total_patterns = [
             r'Total[\s:]*[€$£]?\s*([\d,\.]+)',
             r'Gesamt[\s:]*[€$£]?\s*([\d,\.]+)',
             r'Toplam[\s:]*[€$£]?\s*([\d,\.]+)',
             r'[€$£]\s*([\d,\.]+)',
         ]
+        
         for pattern in total_patterns:
             matches = re.findall(pattern, full_text, re.IGNORECASE)
             if matches:
-                # En büyük sayıyı al (genellikle toplam tutar)
                 amounts = []
                 for m in matches:
                     try:
-                        amount = float(m.replace(',', ''))
-                        amounts.append(amount)
+                        amounts.append(float(m.replace(',', '')))
                     except:
                         pass
                 if amounts:
                     data["total_amount"] = max(amounts)
                     break
         
-        # IBAN
         iban_match = re.search(r'([A-Z]{2}\d{2}[\s]?[\d\s]{10,30})', full_text)
         if iban_match:
             data["iban"] = iban_match.group(1).replace(' ', '')
@@ -332,21 +312,11 @@ def extract_invoice_data_from_pdf(pdf_attachment):
         else:
             data.update(extract_lieferando_fields(full_text))
         
-        print(f">>>>>> Çıkarılan veriler:")
-        print(f"       - Platform: {data.get('platform')}")
-        print(f"       - Rechnungsnummer: {data.get('invoice_number')}")
-        print(f"       - Gesamtbetrag: €{data.get('total_amount')}")
-        print(f"       - Tüm veriler: {data}")
-        
         return data
         
-    except ImportError as e:
-        print(f"⚠️ PyPDF2 yüklü değil: {str(e)}")
+    except ImportError:
         return {"raw_text": "", "confidence": 0}
-    
     except Exception as e:
-        print(f"❌ PDF OKUMA HATASI: {str(e)}")
-        print(f"❌ Traceback: {frappe.get_traceback()}")
         frappe.log_error(
             title="PDF Extraction Error",
             message=f"Error: {str(e)}\n{frappe.get_traceback()}"
@@ -355,6 +325,7 @@ def extract_invoice_data_from_pdf(pdf_attachment):
 
 
 def detect_invoice_platform(full_text: str) -> str:
+    """PDF içeriğinden platform tespit et"""
     normalized = (full_text or "").lower()
     if "wolt" in normalized and "lieferando" not in normalized:
         return "wolt"
@@ -364,6 +335,7 @@ def detect_invoice_platform(full_text: str) -> str:
 
 
 def extract_lieferando_fields(full_text: str) -> dict:
+    """Lieferando fatura alanlarını çıkar"""
     data = {}
     
     customer_num_match = re.search(r'Kundennummer[\s:]*(\d+)', full_text)
@@ -480,6 +452,7 @@ def extract_lieferando_fields(full_text: str) -> dict:
 
 
 def extract_wolt_fields(full_text: str) -> dict:
+    """Wolt fatura alanlarını çıkar"""
     data = {"platform": "wolt"}
     clean_text = (full_text or "").replace("|", " ")
     
@@ -571,19 +544,19 @@ def extract_wolt_fields(full_text: str) -> dict:
 
 
 def parse_decimal(value: str | None):
+    """String değeri decimal'e çevir"""
     if value is None:
         return None
     clean = value.strip()
     if not clean:
         return None
-    clean = clean.replace("€", "").replace("%", "")
-    clean = clean.replace("−", "-")
-    clean = clean.replace(" ", "")
-    # Remove thousand separators but keep decimal part
+    clean = clean.replace("€", "").replace("%", "").replace("−", "-").replace(" ", "")
+    
     if "," in clean and "." in clean:
         clean = clean.replace(".", "").replace(",", ".")
     else:
         clean = clean.replace(",", ".")
+    
     try:
         return float(clean)
     except ValueError:
@@ -591,66 +564,45 @@ def parse_decimal(value: str | None):
 
 
 def attach_pdf_to_invoice(pdf_attachment, invoice_name, target_doctype):
-    """
-    PDF'i Invoice kaydına attach et
-    """
+    """PDF'i Invoice kaydına attach et"""
     try:
         file_doc = frappe.get_doc("File", pdf_attachment.name)
-        
-        # File içeriğini oku
         file_content = file_doc.get_content()
         
-        # Yeni File dokümanı oluştur (içerikle birlikte)
-        # PDF'leri public yapıyoruz ki direkt erişilebilsinler
         new_file = frappe.get_doc({
             "doctype": "File",
             "file_name": file_doc.file_name,
             "attached_to_doctype": target_doctype,
             "attached_to_name": invoice_name,
-            "attached_to_field": "pdf_file",  # Hangi alana attach edildiğini belirt
-            "is_private": 0,  # Public yap - böylece görüntülenebilir
+            "attached_to_field": "pdf_file",
+            "is_private": 0,
             "content": file_content,
             "folder": "Home/Attachments"
         })
         new_file.flags.ignore_permissions = True
         new_file.insert()
         
-        # Invoice'ın pdf_file alanını güncelle
-        # URL'i relative olarak kaydet (Frappe UI'da attach field zaten absolute URL'e çevirecek)
         frappe.db.set_value(target_doctype, invoice_name, "pdf_file", new_file.file_url)
         frappe.db.commit()
-        
-        print(f"✅ PDF attached: {pdf_attachment.file_name} -> {new_file.file_url}")
         
     except Exception as e:
         frappe.log_error(
             title="PDF Attachment Error",
             message=f"Error: {str(e)}\n{frappe.get_traceback()}"
         )
-        print(f"❌ PDF attach hatası: {str(e)}")
 
 
 def generate_temp_invoice_number():
-    """
-    Geçici fatura numarası oluştur
-    """
-    from datetime import datetime
+    """Geçici fatura numarası oluştur"""
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     return f"TEMP-{timestamp}"
 
 
 def parse_date(date_str):
-    """
-    Çeşitli tarih formatlarını parse et
-    """
+    """Çeşitli tarih formatlarını parse et"""
     formats = [
-        "%d.%m.%Y",
-        "%d/%m/%Y",
-        "%d-%m-%Y",
-        "%Y-%m-%d",
-        "%m/%d/%Y",
-        "%d.%m.%y",
-        "%d/%m/%y",
+        "%d.%m.%Y", "%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d",
+        "%m/%d/%Y", "%d.%m.%y", "%d/%m/%y",
     ]
     
     for fmt in formats:
@@ -660,5 +612,296 @@ def parse_date(date_str):
         except:
             continue
     
-    # Parse edilemezse bugünün tarihi
     return frappe.utils.today()
+
+
+def notify_invoice_created(doctype, docname, invoice_number, email_subject):
+    """Fatura oluşturulduğunda kullanıcıya bildirim göster"""
+    try:
+        from frappe.utils.data import get_url_to_form
+        
+        invoice_link = get_url_to_form(doctype, docname)
+        platform_name = "Lieferando" if "Lieferando" in doctype else "Wolt"
+        
+        message = f"""
+        <b>{platform_name} Faturası Oluşturuldu</b><br><br>
+        Fatura No: <b>{invoice_number or 'N/A'}</b><br>
+        Email: {email_subject[:50]}{'...' if len(email_subject) > 50 else ''}<br><br>
+        <a href='{invoice_link}'><b>Faturayı Görüntüle</b></a>
+        """
+        
+        frappe.publish_realtime(
+            "msgprint",
+            {
+                "message": message,
+                "alert": True,
+                "indicator": "green",
+                "title": f"{platform_name} Faturası Oluşturuldu"
+            },
+            after_commit=True
+        )
+        
+    except Exception as e:
+        logger.error(f"Bildirim gönderme hatası: {str(e)}")
+
+
+def _get_session_stats():
+    """Session bazlı istatistikleri al"""
+    session_key = "invoice_processing_stats"
+    if not hasattr(frappe.local, session_key):
+        setattr(frappe.local, session_key, {
+            "total_detected": 0,
+            "already_processed": 0,
+            "newly_processed": 0,
+            "errors": 0,
+            "invoices_created": [],
+            "emails_processed": []
+        })
+    return getattr(frappe.local, session_key)
+
+
+def _update_session_stats(stats):
+    """Session istatistiklerini güncelle"""
+    session_stats = _get_session_stats()
+    session_stats["total_detected"] += stats.get("total_detected", 0)
+    session_stats["already_processed"] += stats.get("already_processed", 0)
+    session_stats["newly_processed"] += stats.get("newly_processed", 0)
+    session_stats["errors"] += stats.get("errors", 0)
+    session_stats["invoices_created"].extend(stats.get("invoices_created", []))
+    if stats.get("total_detected", 0) > 0 or stats.get("already_processed", 0) > 0:
+        session_stats["emails_processed"].append(stats)
+
+
+def show_summary_notification(stats, email_subject, is_final=False):
+    """Email işleme özetini göster - hem realtime hem de Notification Log olarak"""
+    print(f"[INVOICE] show_summary_notification çağrıldı. Stats: {stats}, Subject: {email_subject}")
+    try:
+        from frappe.utils.data import get_url_to_form
+        from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
+        
+        print(f"[INVOICE] Import'lar tamamlandı")
+        
+        try:
+            _update_session_stats(stats)
+            print(f"[INVOICE] Session stats güncellendi")
+        except Exception as e:
+            print(f"[INVOICE] ⚠️ Session stats hatası (devam ediliyor): {str(e)}")
+            logger.warning(f"Session stats hatası: {str(e)}")
+        
+        total_detected = stats.get("total_detected", 0)
+        already_processed = stats.get("already_processed", 0)
+        newly_processed = stats.get("newly_processed", 0)
+        errors = stats.get("errors", 0)
+        invoices_created = stats.get("invoices_created", [])
+        
+        print(f"[INVOICE] Bildirim gönderiliyor. Stats: total={total_detected}, new={newly_processed}, already={already_processed}, errors={errors}")
+        logger.info(f"Bildirim gönderiliyor. Stats: total={total_detected}, new={newly_processed}, already={already_processed}, errors={errors}")
+        
+        if total_detected == 0 and already_processed == 0:
+            print(f"[INVOICE] Bildirim gönderilmedi - istatistik yok (total={total_detected}, already={already_processed})")
+            logger.info("Bildirim gönderilmedi - istatistik yok")
+            return
+        
+        message_parts = []
+        message_parts.append(f"📧 <b>Email İşleme Özeti</b><br>")
+        message_parts.append(f"<b>Email:</b> {email_subject[:60]}{'...' if len(email_subject) > 60 else ''}<br><br>")
+        
+        if total_detected > 0:
+            message_parts.append(f"✅ <b>Yakalanan Fatura:</b> {total_detected}<br>")
+        
+        if already_processed > 0:
+            message_parts.append(f"⚠️ <b>Daha Önce İşlenmiş:</b> {already_processed}<br>")
+        
+        if newly_processed > 0:
+            message_parts.append(f"🆕 <b>Yeni İşlenen:</b> {newly_processed}<br>")
+        
+        if errors > 0:
+            message_parts.append(f"❌ <b>Hata:</b> {errors}<br>")
+        
+        if invoices_created:
+            message_parts.append(f"<br><b>Oluşturulan Faturalar:</b><br>")
+            for inv in invoices_created[:5]:
+                platform = "Lieferando" if "Lieferando" in inv["doctype"] else "Wolt"
+                invoice_link = get_url_to_form(inv["doctype"], inv["name"])
+                message_parts.append(f"• <a href='{invoice_link}'>{platform} - {inv['invoice_number']}</a><br>")
+            
+            if len(invoices_created) > 5:
+                message_parts.append(f"... ve {len(invoices_created) - 5} fatura daha<br>")
+        
+        message = "".join(message_parts)
+        
+        if errors > 0:
+            indicator = "red"
+        elif already_processed > 0 and newly_processed == 0:
+            indicator = "orange"
+        else:
+            indicator = "green"
+        
+        # Realtime bildirim (anlık popup) - her zaman gönder
+        print(f"[INVOICE] Realtime bildirim hazırlanıyor...")
+        try:
+            current_user = frappe.session.user if hasattr(frappe, 'session') and hasattr(frappe.session, 'user') else None
+            print(f"[INVOICE] Current user: {current_user}")
+            
+            # Tüm aktif kullanıcılara bildirim gönder
+            active_users = frappe.get_all("User", 
+                filters={"enabled": 1, "user_type": "System User"},
+                fields=["name"]
+            )
+            user_list = [user.name for user in active_users] if active_users else []
+            
+            if not user_list:
+                print(f"[INVOICE] ⚠️ Aktif kullanıcı bulunamadı, bildirim gönderilemiyor")
+                logger.warning("Aktif kullanıcı bulunamadı")
+            else:
+                print(f"[INVOICE] Bildirim gönderilecek kullanıcılar: {user_list}")
+                
+                # Her kullanıcıya bildirim gönder
+                for user in user_list:
+                    try:
+                        frappe.publish_realtime(
+                            "show_alert",
+                            {
+                                "message": message,
+                                "alert": True,
+                                "indicator": indicator,
+                                "title": "Fatura İşleme Özeti"
+                            },
+                            user=user,
+                            after_commit=True
+                        )
+                        print(f"[INVOICE] ✅ Bildirim gönderildi: {user}")
+                    except Exception as e:
+                        print(f"[INVOICE] ❌ Kullanıcı {user} için bildirim hatası: {str(e)}")
+                        logger.error(f"Kullanıcı {user} için bildirim hatası: {str(e)}")
+                
+                logger.info(f"Realtime bildirim gönderildi - {len(user_list)} kullanıcıya")
+        except Exception as e:
+            print(f"[INVOICE] ❌ Realtime bildirim hatası: {str(e)}")
+            logger.error(f"Realtime bildirim hatası: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        # Notification Log kaydı oluştur (kalıcı bildirim)
+        try:
+            subject_text = f"Fatura İşleme: {newly_processed} yeni, {already_processed} tekrar"
+            if errors > 0:
+                subject_text += f", {errors} hata"
+            
+            notification_doc = {
+                "type": "Alert",
+                "document_type": "Communication",
+                "subject": subject_text,
+                "email_content": message,
+            }
+            
+            active_users = frappe.get_all("User", 
+                filters={"enabled": 1, "user_type": "System User"},
+                fields=["name"]
+            )
+            user_emails = [user.name for user in active_users]
+            
+            if user_emails:
+                enqueue_create_notification(user_emails, notification_doc)
+                print(f"[INVOICE] ✅ Notification Log gönderildi - {len(user_emails)} kullanıcıya")
+                logger.info(f"Notification Log gönderildi - {len(user_emails)} kullanıcıya")
+            else:
+                print(f"[INVOICE] ⚠️ Notification Log gönderilmedi - aktif kullanıcı bulunamadı")
+                logger.warning("Notification Log gönderilmedi - aktif kullanıcı bulunamadı")
+        except Exception as e:
+            logger.error(f"Notification Log gönderme hatası: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        # Final özet için toplu bildirim gönder
+        if is_final:
+            session_stats = _get_session_stats()
+            _send_final_summary(session_stats)
+            if hasattr(frappe.local, "invoice_processing_stats"):
+                delattr(frappe.local, "invoice_processing_stats")
+        
+    except Exception as e:
+        logger.error(f"Özet bildirimi gönderme hatası: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+
+
+def _send_final_summary(session_stats):
+    """Tüm email'ler işlendikten sonra toplu özet gönder"""
+    try:
+        from frappe.utils.data import get_url_to_form
+        from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
+        
+        total_detected = session_stats.get("total_detected", 0)
+        already_processed = session_stats.get("already_processed", 0)
+        newly_processed = session_stats.get("newly_processed", 0)
+        errors = session_stats.get("errors", 0)
+        all_invoices = session_stats.get("invoices_created", [])
+        emails_count = len(session_stats.get("emails_processed", []))
+        
+        if total_detected == 0 and already_processed == 0:
+            return
+        
+        message_parts = []
+        message_parts.append(f"<b>📧 Toplu Email İşleme Özeti</b><br><br>")
+        message_parts.append(f"<b>İşlenen Email Sayısı:</b> {emails_count}<br><br>")
+        message_parts.append(f"✅ <b>Toplam Yakalanan Fatura:</b> {total_detected}<br>")
+        message_parts.append(f"🆕 <b>Yeni İşlenen:</b> {newly_processed}<br>")
+        message_parts.append(f"⚠️ <b>Daha Önce İşlenmiş:</b> {already_processed}<br>")
+        
+        if errors > 0:
+            message_parts.append(f"❌ <b>Hata:</b> {errors}<br>")
+        
+        if all_invoices:
+            message_parts.append(f"<br><b>Oluşturulan Faturalar ({len(all_invoices)}):</b><br>")
+            for inv in all_invoices[:10]:
+                platform = "Lieferando" if "Lieferando" in inv["doctype"] else "Wolt"
+                invoice_link = get_url_to_form(inv["doctype"], inv["name"])
+                message_parts.append(f"• <a href='{invoice_link}'>{platform} - {inv['invoice_number']}</a><br>")
+            
+            if len(all_invoices) > 10:
+                message_parts.append(f"... ve {len(all_invoices) - 10} fatura daha<br>")
+        
+        message = "".join(message_parts)
+        
+        if errors > 0:
+            indicator = "red"
+        elif already_processed > 0 and newly_processed == 0:
+            indicator = "orange"
+        else:
+            indicator = "green"
+        
+        # Toplu özet bildirimi
+        frappe.publish_realtime(
+            "msgprint",
+            {
+                "message": message,
+                "alert": True,
+                "indicator": indicator,
+                "title": "Fatura İşleme - Toplu Özet"
+            },
+            after_commit=True
+        )
+        
+        subject_text = f"Fatura İşleme Özeti: {emails_count} email, {newly_processed} yeni fatura"
+        if errors > 0:
+            subject_text += f", {errors} hata"
+        
+        notification_doc = {
+            "type": "Alert",
+            "document_type": "Communication",
+            "subject": subject_text,
+            "email_content": message,
+        }
+        
+        active_users = frappe.get_all("User", 
+            filters={"enabled": 1, "user_type": "System User"},
+            fields=["name"]
+        )
+        user_emails = [user.name for user in active_users]
+        
+        if user_emails:
+            enqueue_create_notification(user_emails, notification_doc)
+        
+    except Exception as e:
+        logger.error(f"Toplu özet bildirimi gönderme hatası: {str(e)}")
