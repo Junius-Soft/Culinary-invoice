@@ -1,0 +1,410 @@
+{
+ "actions": [],
+ "autoname": "field:invoice_number",
+ "creation": "2025-11-25 12:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "invoice_section",
+  "invoice_number",
+  "invoice_date",
+  "tax_date",
+  "period_start",
+  "col_break_period",
+  "period_end",
+  "status",
+  "supplier_section",
+  "supplier_name",
+  "supplier_vat",
+  "supplier_address",
+  "customer_section",
+  "restaurant_name",
+  "customer_company",
+  "restaurant_address",
+  "col_break_customer",
+  "business_id",
+  "customer_vat",
+  "tax_number",
+  "orders_section",
+  "total_orders",
+  "total_order_value",
+  "gross_revenue_after_discounts",
+  "col_break_orders",
+  "commission_own_delivery",
+  "commission_pickup",
+  "fees_section",
+  "uber_eats_fee",
+  "vat_19_percent",
+  "col_break_fees",
+  "cash_collected",
+  "total_payout",
+  "amounts_section",
+  "net_amount",
+  "vat_amount",
+  "col_break_amounts",
+  "total_amount",
+  "metadata_section",
+  "pdf_file",
+  "email_subject",
+  "email_from",
+  "col_break_metadata",
+  "received_date",
+  "processed_date",
+  "extraction_confidence",
+  "raw_text",
+  "notes_section",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "invoice_section",
+   "fieldtype": "Section Break",
+   "label": "Rechnung"
+  },
+  {
+   "fieldname": "invoice_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Rechnungsnummer",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "invoice_date",
+   "fieldtype": "Date",
+   "label": "Rechnungsdatum",
+   "reqd": 1
+  },
+  {
+   "fieldname": "tax_date",
+   "fieldtype": "Date",
+   "label": "Steuerdatum"
+  },
+  {
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "label": "Zeitraum (Başlangıç)"
+  },
+  {
+   "fieldname": "col_break_period",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "period_end",
+   "fieldtype": "Date",
+   "label": "Zeitraum (Bitiş)"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Durum",
+   "options": "Draft\nSubmitted\nCancelled"
+  },
+  {
+   "fieldname": "supplier_section",
+   "fieldtype": "Section Break",
+   "label": "Uber Eats"
+  },
+  {
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "label": "Şirket",
+   "default": "Uber Eats Germany GmbH"
+  },
+  {
+   "fieldname": "supplier_vat",
+   "fieldtype": "Data",
+   "label": "USt.-ID"
+  },
+  {
+   "fieldname": "supplier_address",
+   "fieldtype": "Small Text",
+   "label": "Adres"
+  },
+  {
+   "fieldname": "customer_section",
+   "fieldtype": "Section Break",
+   "label": "Restoran"
+  },
+  {
+   "fieldname": "restaurant_name",
+   "fieldtype": "Data",
+   "label": "Restoran Adı"
+  },
+  {
+   "fieldname": "customer_company",
+   "fieldtype": "Data",
+   "label": "Müşteri Şirketi"
+  },
+  {
+   "fieldname": "restaurant_address",
+   "fieldtype": "Small Text",
+   "label": "Adres"
+  },
+  {
+   "fieldname": "col_break_customer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "business_id",
+   "fieldtype": "Data",
+   "label": "Handelsregisternummer"
+  },
+  {
+   "fieldname": "customer_vat",
+   "fieldtype": "Data",
+   "label": "USt-IdNr. (Müşteri)"
+  },
+  {
+   "fieldname": "tax_number",
+   "fieldtype": "Data",
+   "label": "St-Nr."
+  },
+  {
+   "fieldname": "orders_section",
+   "fieldtype": "Section Break",
+   "label": "Bestellungen"
+  },
+  {
+   "fieldname": "total_orders",
+   "fieldtype": "Int",
+   "label": "Anzahl Bestellungen",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_order_value",
+   "fieldtype": "Currency",
+   "label": "Gesamtwert Bestellungen",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gross_revenue_after_discounts",
+   "fieldtype": "Currency",
+   "label": "Bruttoumsatz nach Rabatten",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_orders",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "commission_own_delivery",
+   "fieldtype": "Currency",
+   "label": "Provision, eigene Lieferung",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "commission_pickup",
+   "fieldtype": "Currency",
+   "label": "Provision, Abholung",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fees_section",
+   "fieldtype": "Section Break",
+   "label": "Gebühren"
+  },
+  {
+   "fieldname": "uber_eats_fee",
+   "fieldtype": "Currency",
+   "label": "Uber Eats Gebühr",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_19_percent",
+   "fieldtype": "Currency",
+   "label": "MwSt. (19%)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_fees",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cash_collected",
+   "fieldtype": "Currency",
+   "label": "Eingenommenes Bargeld",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "total_payout",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Gesamtauszahlung",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amounts_section",
+   "fieldtype": "Section Break",
+   "label": "Rechnungsbeträge"
+  },
+  {
+   "fieldname": "net_amount",
+   "fieldtype": "Currency",
+   "label": "Gesamtnettobetrag",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_amount",
+   "fieldtype": "Currency",
+   "label": "Gesamtbetrag USt 19%",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_amounts",
+   "fieldtype": "Column Break"
+  },
+  {
+   "bold": 1,
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Gesamtbetrag",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "metadata_section",
+   "fieldtype": "Section Break",
+   "label": "Kaynak"
+  },
+  {
+   "fieldname": "pdf_file",
+   "fieldtype": "Attach",
+   "label": "PDF"
+  },
+  {
+   "fieldname": "email_subject",
+   "fieldtype": "Data",
+   "label": "Email Subject",
+   "read_only": 1
+  },
+  {
+   "fieldname": "email_from",
+   "fieldtype": "Data",
+   "label": "Email From",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_metadata",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "received_date",
+   "fieldtype": "Datetime",
+   "label": "Received",
+   "read_only": 1
+  },
+  {
+   "fieldname": "processed_date",
+   "fieldtype": "Datetime",
+   "label": "Processed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "extraction_confidence",
+   "fieldtype": "Int",
+   "label": "Confidence",
+   "read_only": 1
+  },
+  {
+   "fieldname": "raw_text",
+   "fieldtype": "Long Text",
+   "label": "Ham Metin",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notlar"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Açıklamalar"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Uber Eats Invoice",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-11-25 20:15:04.837488",
+ "modified_by": "Administrator",
+ "module": "invoice",
+ "name": "Uber Eats Invoice",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
+

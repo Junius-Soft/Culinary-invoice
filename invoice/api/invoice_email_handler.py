@@ -23,17 +23,8 @@ def process_invoice_email(doc, method=None):
             logger.info(f"Email atlandı - type: {doc.communication_type}, received: {doc.sent_or_received}")
             return
         
-        duplicate_filters = {
-            "email_from": doc.sender,
-            "email_subject": doc.subject,
-            "received_date": doc.creation
-        }
-        
-        if frappe.db.exists("Lieferando Invoice", duplicate_filters) or \
-           frappe.db.exists("Wolt Invoice", duplicate_filters):
-            stats["already_processed"] = 1
-            show_summary_notification(stats, doc.subject)
-            return
+        # NOT: Duplicate kontrolü sadece invoice_number (Rechnungsnummer) ile yapılacak
+        # Email seviyesinde kontrol kaldırıldı - aynı email'den farklı faturalar gelebilir
         
         attachments = frappe.get_all("File",
             filters={
@@ -49,30 +40,82 @@ def process_invoice_email(doc, method=None):
         ]
         
         subject = (doc.subject or "").lower()
-        keywords = ["invoice", "fatura", "rechnung", "facture", "bill"]
-        has_invoice_subject = any(keyword in subject for keyword in keywords)
         
-        has_rechnung_pdf = any(
-            (pdf.get('file_name') or "").lower().startswith("rechnung_und")
-            for pdf in pdf_attachments
-        )
+        # ÖNEMLİ: "Ihre neue Aktivitätsübersicht" içeren email'ler UberEats faturaları
+        is_uber_eats_report = "ihre neue aktivitätsübersicht" in subject
+        if is_uber_eats_report:
+            print(f"[INVOICE] ✅ UberEats Aktivitätsübersicht email'i tespit edildi: {doc.subject}")
+            logger.info(f"UberEats Aktivitätsübersicht email'i tespit edildi: {doc.subject}")
+            print(f"[INVOICE] Tüm PDF'ler taranacak ({len(pdf_attachments)} adet)")
+            logger.info(f"Tüm PDF'ler taranacak ({len(pdf_attachments)} adet)")
+            stats["total_detected"] = len(pdf_attachments)
+            
+            if not pdf_attachments:
+                print(f"[INVOICE] ⚠️ UberEats email'inde PDF bulunamadı")
+                logger.warning("UberEats email'inde PDF bulunamadı")
+                stats["errors"] = 1
+                show_summary_notification(stats, doc.subject)
+                return
         
-        if not has_invoice_subject and not has_rechnung_pdf:
-            print(f"[INVOICE] Email atlandı - fatura değil: {doc.subject}")
-            logger.info(f"Email atlandı - fatura değil: {doc.subject}")
-            return
+        # ÖNEMLİ: "Wolt payout report" içeren email'lerdeki tüm PDF'leri işle
+        is_wolt_payout_report = "wolt payout report" in subject
+        if is_wolt_payout_report:
+            print(f"[INVOICE] ✅ Wolt payout report email'i tespit edildi: {doc.subject}")
+            logger.info(f"Wolt payout report email'i tespit edildi: {doc.subject}")
+            print(f"[INVOICE] Tüm PDF'ler taranacak ({len(pdf_attachments)} adet)")
+            logger.info(f"Tüm PDF'ler taranacak ({len(pdf_attachments)} adet)")
+            stats["total_detected"] = len(pdf_attachments)
+            
+            if not pdf_attachments:
+                print(f"[INVOICE] ⚠️ Wolt payout report email'inde PDF bulunamadı")
+                logger.warning("Wolt payout report email'inde PDF bulunamadı")
+                stats["errors"] = 1
+                show_summary_notification(stats, doc.subject)
+                return
         
-        print(f"[INVOICE] ✅ Fatura email'i tespit edildi: {doc.subject}")
-        logger.info(f"Fatura email'i tespit edildi: {doc.subject}")
-        stats["total_detected"] = 1
-        
-        if not pdf_attachments:
-            stats["errors"] = 1
-            show_summary_notification(stats, doc.subject)
-            return
+        # Normal fatura kontrolü - sadece özel email'ler değilse
+        if not is_uber_eats_report and not is_wolt_payout_report:
+            keywords = ["invoice", "fatura", "rechnung", "facture", "bill"]
+            has_invoice_subject = any(keyword in subject for keyword in keywords)
+            
+            if not has_invoice_subject:
+                print(f"[INVOICE] Email atlandı - fatura değil: {doc.subject}")
+                logger.info(f"Email atlandı - fatura değil: {doc.subject}")
+                return
+            
+            print(f"[INVOICE] ✅ Fatura email'i tespit edildi: {doc.subject}")
+            logger.info(f"Fatura email'i tespit edildi: {doc.subject}")
+            stats["total_detected"] = 1
+            
+            if not pdf_attachments:
+                stats["errors"] = 1
+                show_summary_notification(stats, doc.subject)
+                return
         
         for pdf in pdf_attachments:
             try:
+                # UberEats email'lerinde: Sadece "Bestell- und Zahlungsübersicht" başlığı olan PDF'leri işle
+                if is_uber_eats_report:
+                    # PDF içeriğini hızlıca kontrol et
+                    has_uber_eats_header = check_pdf_has_uber_eats_header(pdf)
+                    if not has_uber_eats_header:
+                        print(f"[INVOICE] ⏭️ PDF atlandı (Bestell- und Zahlungsübersicht yok): {pdf.file_name}")
+                        logger.info(f"PDF atlandı (Bestell- und Zahlungsübersicht yok): {pdf.file_name}")
+                        continue
+                    print(f"[INVOICE] ✅ PDF işlenecek (Bestell- und Zahlungsübersicht bulundu): {pdf.file_name}")
+                    logger.info(f"PDF işlenecek (Bestell- und Zahlungsübersicht bulundu): {pdf.file_name}")
+                
+                # Wolt payout report email'lerinde: Sadece "Rechnung(Selbstfakturierung)" başlığı olan PDF'leri işle
+                if is_wolt_payout_report:
+                    # PDF içeriğini hızlıca kontrol et - hem "Rechnung" hem "Selbstfakturierung" olmalı
+                    has_selbstfakturierung = check_pdf_has_selbstfakturierung(pdf)
+                    if not has_selbstfakturierung:
+                        print(f"[INVOICE] ⏭️ PDF atlandı (Rechnung(Selbstfakturierung) yok): {pdf.file_name}")
+                        logger.info(f"PDF atlandı (Rechnung(Selbstfakturierung) yok): {pdf.file_name}")
+                        continue
+                    print(f"[INVOICE] ✅ PDF işlenecek (Rechnung(Selbstfakturierung) bulundu): {pdf.file_name}")
+                    logger.info(f"PDF işlenecek (Rechnung(Selbstfakturierung) bulundu): {pdf.file_name}")
+                
                 invoice = create_invoice_from_pdf(doc, pdf)
                 if invoice:
                     stats["newly_processed"] += 1
@@ -108,20 +151,66 @@ def process_invoice_email(doc, method=None):
 
 def create_invoice_from_pdf(communication_doc, pdf_attachment):
     """PDF'den Invoice kaydı oluştur"""
+    file_name = pdf_attachment.get('file_name', '')
+    print(f"[INVOICE] PDF işleniyor: {file_name}")
+    logger.info(f"PDF işleniyor: {file_name}")
+    
+    # Dosya adına göre platform tespiti (öncelikli)
+    file_name_lower = file_name.lower() if file_name else ''
+    platform_from_filename = detect_platform_from_filename(file_name_lower)
+    print(f"[INVOICE] Dosya adından platform: {platform_from_filename}")
+    logger.info(f"Dosya adından platform: {platform_from_filename}")
+    
     extracted_data = extract_invoice_data_from_pdf(pdf_attachment)
-    platform = extracted_data.get("platform") or "lieferando"
+    
+    # PDF içeriğinden platform tespiti
+    platform_from_content = extracted_data.get("platform")
+    print(f"[INVOICE] İçerikten platform: {platform_from_content}")
+    logger.info(f"İçerikten platform: {platform_from_content}")
+    
+    # Dosya adı tespiti öncelikli, yoksa içerik tespiti
+    platform = platform_from_filename or platform_from_content
+    
+    # ÖNEMLİ: Platform tespit edilemezse işleme (1&1, diğer faturalar gibi)
+    if not platform or platform == "unknown":
+        print(f"[INVOICE] ⚠️ Platform tespit edilemedi, email atlanıyor: {file_name}")
+        logger.warning(f"Platform tespit edilemedi, email atlanıyor: {file_name}")
+        return None
+    
+    print(f"[INVOICE] Seçilen platform: {platform}")
+    logger.info(f"Seçilen platform: {platform}")
     
     if platform == "wolt":
+        print(f"[INVOICE] ✅ Wolt Invoice oluşturuluyor")
+        logger.info("Wolt Invoice oluşturuluyor")
         return create_wolt_invoice_doc(communication_doc, pdf_attachment, extracted_data)
     
+    if platform == "uber_eats":
+        print(f"[INVOICE] ✅ UberEats Invoice oluşturuluyor")
+        logger.info("UberEats Invoice oluşturuluyor")
+        return create_uber_eats_invoice_doc(communication_doc, pdf_attachment, extracted_data)
+    
+    print(f"[INVOICE] ✅ Lieferando Invoice oluşturuluyor")
+    logger.info("Lieferando Invoice oluşturuluyor")
     return create_lieferando_invoice_doc(communication_doc, pdf_attachment, extracted_data)
 
 
 def create_lieferando_invoice_doc(communication_doc, pdf_attachment, extracted_data):
     """Lieferando Invoice kaydı oluştur"""
     invoice_number = extracted_data.get("invoice_number")
-    if invoice_number and frappe.db.exists("Lieferando Invoice", {"invoice_number": invoice_number}):
-        return None
+    
+    # Duplicate kontrolü: Sadece invoice_number (Rechnungsnummer) ile kontrol
+    if invoice_number:
+        existing_invoice = frappe.db.exists("Lieferando Invoice", {"invoice_number": invoice_number})
+        if existing_invoice:
+            print(f"[INVOICE] ⚠️ Fatura zaten işlenmiş (Rechnungsnummer: {invoice_number})")
+            logger.info(f"Fatura zaten işlenmiş (Rechnungsnummer: {invoice_number})")
+            return None
+        print(f"[INVOICE] ✅ Yeni fatura tespit edildi (Rechnungsnummer: {invoice_number})")
+        logger.info(f"Yeni fatura tespit edildi (Rechnungsnummer: {invoice_number})")
+    else:
+        print(f"[INVOICE] ⚠️ Invoice number bulunamadı, geçici numara kullanılacak")
+        logger.warning("Invoice number bulunamadı, geçici numara kullanılacak")
     
     invoice = frappe.get_doc({
         "doctype": "Lieferando Invoice",
@@ -170,6 +259,10 @@ def create_lieferando_invoice_doc(communication_doc, pdf_attachment, extracted_d
     if order_items:
         invoice.order_items = order_items
     
+    # name (ID) field'ını invoice_number (Rechnungsnummer) ile aynı yap
+    final_invoice_number = invoice_number or generate_temp_invoice_number()
+    invoice.name = final_invoice_number
+    
     invoice.insert(ignore_permissions=True, ignore_mandatory=True)
     attach_pdf_to_invoice(pdf_attachment, invoice.name, "Lieferando Invoice")
     notify_invoice_created("Lieferando Invoice", invoice.name, invoice.invoice_number, communication_doc.subject)
@@ -180,8 +273,19 @@ def create_lieferando_invoice_doc(communication_doc, pdf_attachment, extracted_d
 def create_wolt_invoice_doc(communication_doc, pdf_attachment, extracted_data):
     """Wolt Invoice kaydı oluştur"""
     invoice_number = extracted_data.get("invoice_number")
-    if invoice_number and frappe.db.exists("Wolt Invoice", {"invoice_number": invoice_number}):
-        return None
+    
+    # Duplicate kontrolü: Sadece invoice_number (Rechnungsnummer) ile kontrol
+    if invoice_number:
+        existing_invoice = frappe.db.exists("Wolt Invoice", {"invoice_number": invoice_number})
+        if existing_invoice:
+            print(f"[INVOICE] ⚠️ Fatura zaten işlenmiş (Rechnungsnummer: {invoice_number})")
+            logger.info(f"Fatura zaten işlenmiş (Rechnungsnummer: {invoice_number})")
+            return None
+        print(f"[INVOICE] ✅ Yeni fatura tespit edildi (Rechnungsnummer: {invoice_number})")
+        logger.info(f"Yeni fatura tespit edildi (Rechnungsnummer: {invoice_number})")
+    else:
+        print(f"[INVOICE] ⚠️ Invoice number bulunamadı, geçici numara kullanılacak")
+        logger.warning("Invoice number bulunamadı, geçici numara kullanılacak")
     
     invoice = frappe.get_doc({
         "doctype": "Wolt Invoice",
@@ -228,11 +332,76 @@ def create_wolt_invoice_doc(communication_doc, pdf_attachment, extracted_data):
         "raw_text": extracted_data.get("raw_text", "")
     })
     
+    # name (ID) field'ını invoice_number (Rechnungsnummer) ile aynı yap
+    final_invoice_number = invoice_number or generate_temp_invoice_number()
+    invoice.name = final_invoice_number
+    
     invoice.insert(ignore_permissions=True, ignore_mandatory=True)
     attach_pdf_to_invoice(pdf_attachment, invoice.name, "Wolt Invoice")
     notify_invoice_created("Wolt Invoice", invoice.name, invoice.invoice_number, communication_doc.subject)
     
     return invoice
+
+
+def check_pdf_has_uber_eats_header(pdf_attachment):
+    """PDF içinde 'Bestell- und Zahlungsübersicht' başlığı var mı kontrol et (UberEats faturaları için)"""
+    try:
+        import PyPDF2
+        
+        file_doc = frappe.get_doc("File", pdf_attachment.name)
+        file_path = file_doc.get_full_path()
+        
+        # Sadece ilk sayfayı oku (başlık genellikle ilk sayfada)
+        with open(file_path, 'rb') as pdf_file:
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            if len(pdf_reader.pages) > 0:
+                first_page_text = pdf_reader.pages[0].extract_text()
+                normalized = (first_page_text or "").lower()
+                
+                # "bestell- und zahlungsübersicht" başlığı olmalı
+                has_header = "bestell- und zahlungsübersicht" in normalized or "bestell- und zahlungsübersicht" in first_page_text
+                
+                result = has_header
+                print(f"[INVOICE] PDF UberEats header kontrolü: {pdf_attachment.file_name} → {result}")
+                logger.debug(f"PDF UberEats header kontrolü: {pdf_attachment.file_name} → {result}")
+                return result
+        
+        return False
+    except Exception as e:
+        print(f"[INVOICE] ⚠️ PDF UberEats header kontrolü hatası: {str(e)}")
+        logger.warning(f"PDF UberEats header kontrolü hatası: {str(e)}")
+        return False
+
+
+def check_pdf_has_selbstfakturierung(pdf_attachment):
+    """PDF içinde 'Rechnung(Selbstfakturierung)' başlığı var mı kontrol et (Wolt faturaları için)"""
+    try:
+        import PyPDF2
+        
+        file_doc = frappe.get_doc("File", pdf_attachment.name)
+        file_path = file_doc.get_full_path()
+        
+        # Sadece ilk sayfayı oku (başlık genellikle ilk sayfada)
+        with open(file_path, 'rb') as pdf_file:
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            if len(pdf_reader.pages) > 0:
+                first_page_text = pdf_reader.pages[0].extract_text()
+                normalized = (first_page_text or "").lower()
+                
+                # Hem "rechnung" hem de "selbstfakturierung" kelimeleri olmalı
+                has_rechnung = "rechnung" in normalized
+                has_selbstfakturierung = "selbstfakturierung" in normalized
+                
+                result = has_rechnung and has_selbstfakturierung
+                print(f"[INVOICE] PDF Selbstfakturierung kontrolü: {pdf_attachment.file_name} → {result} (Rechnung: {has_rechnung}, Selbstfakturierung: {has_selbstfakturierung})")
+                logger.debug(f"PDF Selbstfakturierung kontrolü: {pdf_attachment.file_name} → {result}")
+                return result
+        
+        return False
+    except Exception as e:
+        print(f"[INVOICE] ⚠️ PDF Selbstfakturierung kontrolü hatası: {str(e)}")
+        logger.warning(f"PDF Selbstfakturierung kontrolü hatası: {str(e)}")
+        return False
 
 
 def extract_invoice_data_from_pdf(pdf_attachment):
@@ -252,18 +421,40 @@ def extract_invoice_data_from_pdf(pdf_attachment):
             "confidence": 60
         }
         
-        invoice_patterns = [
-            r'Rechnungsnummer[\s:]*([A-Z0-9\/\-]+)',
-            r'Invoice\s*(?:Number|No|#)[\s:]*([A-Z0-9\-]+)',
-            r'Rechnung\s*(?:Nr|#)[\s:]*([A-Z0-9\-]+)',
-            r'Fatura\s*(?:No|#)[\s:]*([A-Z0-9\-]+)',
-        ]
-        
-        for pattern in invoice_patterns:
-            match = re.search(pattern, full_text, re.IGNORECASE)
-            if match:
-                data["invoice_number"] = match.group(1).strip()
-                break
+        # Rechnungsnummer extraction - UberEats faturaları için özel pattern (öncelikli)
+        # Format: "Rechnungsnummer: UBER_DEU-FIGGGCEE-01-2025-0000001"
+        uber_rechnung_match = re.search(r'Rechnungsnummer:\s*([A-Z0-9_\-]+)', full_text, re.IGNORECASE)
+        if uber_rechnung_match:
+            data["invoice_number"] = uber_rechnung_match.group(1).strip()
+            print(f"[INVOICE] ✅ UberEats Rechnungsnummer bulundu: {data['invoice_number']}")
+            logger.info(f"UberEats Rechnungsnummer bulundu: {data['invoice_number']}")
+        else:
+            # Rechnungsnummer extraction - Wolt faturaları için özel pattern
+            # Format: "Rechnungsnummer DEU/25/HRB274170B/1/35" veya "Rechnungsnummer: DEU/25/HRB274170B/1/35"
+            rechnung_match = re.search(r'Rechnungsnummer[\s:]+([A-Z]{3}/\d{2}/[A-Z0-9]+(?:/\d+)+)', full_text, re.IGNORECASE)
+            if rechnung_match:
+                data["invoice_number"] = rechnung_match.group(1).strip()
+                print(f"[INVOICE] ✅ Rechnungsnummer bulundu: {data['invoice_number']}")
+                logger.info(f"Rechnungsnummer bulundu: {data['invoice_number']}")
+            else:
+                # Fallback: Daha genel pattern'ler
+                invoice_patterns = [
+                    r'Rechnungsnummer[\s:]+([A-Z0-9\/\-]+)',
+                    r'Invoice\s*(?:Number|No|#)[\s:]+([A-Z0-9\-]+)',
+                    r'Rechnung\s*(?:Nr|#)[\s:]+([A-Z0-9\-]+)',
+                    r'Fatura\s*(?:No|#)[\s:]+([A-Z0-9\-]+)',
+                ]
+                
+                for pattern in invoice_patterns:
+                    match = re.search(pattern, full_text, re.IGNORECASE)
+                    if match:
+                        invoice_num = match.group(1).strip()
+                        # USt.-ID formatını (DE123456789) filtrele
+                        if not re.match(r'^DE\d{9}$', invoice_num):
+                            data["invoice_number"] = invoice_num
+                            print(f"[INVOICE] ✅ Rechnungsnummer bulundu (fallback): {data['invoice_number']}")
+                            logger.info(f"Rechnungsnummer bulundu (fallback): {data['invoice_number']}")
+                            break
         
         date_patterns = [
             r'Date[\s:]*(\d{1,2}[\.\/\-]\d{1,2}[\.\/\-]\d{2,4})',
@@ -309,6 +500,8 @@ def extract_invoice_data_from_pdf(pdf_attachment):
         
         if platform == "wolt":
             data.update(extract_wolt_fields(full_text))
+        elif platform == "uber_eats":
+            data.update(extract_uber_eats_fields(full_text))
         else:
             data.update(extract_lieferando_fields(full_text))
         
@@ -324,13 +517,94 @@ def extract_invoice_data_from_pdf(pdf_attachment):
         return {"raw_text": "", "confidence": 0}
 
 
+def detect_platform_from_filename(file_name: str) -> str:
+    """Dosya adından platform tespit et"""
+    if not file_name:
+        print(f"[INVOICE] detect_platform_from_filename: Dosya adı boş")
+        logger.debug("detect_platform_from_filename: Dosya adı boş")
+        return None
+    
+    file_name_lower = file_name.lower()
+    print(f"[INVOICE] detect_platform_from_filename: {file_name_lower}")
+    logger.debug(f"detect_platform_from_filename: {file_name_lower}")
+    
+    # ÖNEMLİ: "rechnung_und" ile başlayan dosyalar kesinlikle Lieferando
+    if file_name_lower.startswith("rechnung_und"):
+        print(f"[INVOICE] ✅ Lieferando pattern eşleşti: rechnung_und (başlangıç)")
+        logger.info("Lieferando pattern eşleşti: rechnung_und (başlangıç)")
+        return "lieferando"
+    
+    # Wolt dosya adı pattern'leri:
+    # - Edelweiss_Baumschulenstraße_2025-11-30_00:00:00.000_692cfcbbc3686f9e6b931ea6.pdf
+    # - Edelweiss Baumschulenstraße__netting_report__semi_monthly__2025-11-16__2025-12-01.pdf
+    # - Edelweiss Baumschulenstraße__sales_report__semi_monthly__2025-11-16__2025-12-01.pdf
+    
+    # Wolt pattern'leri: underscore ile ayrılmış tarih ve hash içeren dosyalar
+    # veya __netting_report__ veya __sales_report__ içeren dosyalar
+    wolt_patterns = [
+        (r'__netting_report__', 'netting_report'),
+        (r'__sales_report__', 'sales_report'),
+        (r'_\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}\.\d{3}_[a-f0-9]+\.pdf$', 'tarih_hash'),  # Tarih ve hash pattern
+        (r'_\d{4}-\d{2}-\d{2}__\d{4}-\d{2}-\d{2}\.pdf$', 'tarih_araligi'),  # Tarih aralığı pattern
+    ]
+    
+    for pattern, pattern_name in wolt_patterns:
+        if re.search(pattern, file_name_lower):
+            print(f"[INVOICE] ✅ Wolt pattern eşleşti: {pattern_name}")
+            logger.info(f"Wolt pattern eşleşti: {pattern_name}")
+            return "wolt"
+    
+    # Lieferando dosya adı pattern'leri (Wolt değilse)
+    lieferando_patterns = [
+        (r'^rechnung_und', 'rechnung_und_start'),  # Başlangıç kontrolü (zaten yukarıda kontrol edildi ama yine de)
+        (r'lieferando', 'lieferando'),
+        (r'yourdelivery', 'yourdelivery'),
+        (r'takeaway', 'takeaway'),
+        (r'rechnung_und', 'rechnung_und'),  # Herhangi bir yerde
+    ]
+    
+    for pattern, pattern_name in lieferando_patterns:
+        if re.search(pattern, file_name_lower):
+            print(f"[INVOICE] ✅ Lieferando pattern eşleşti: {pattern_name}")
+            logger.info(f"Lieferando pattern eşleşti: {pattern_name}")
+            return "lieferando"
+    
+    print(f"[INVOICE] ⚠️ Dosya adından platform tespit edilemedi")
+    logger.debug("Dosya adından platform tespit edilemedi")
+    return None
+
+
 def detect_invoice_platform(full_text: str) -> str:
     """PDF içeriğinden platform tespit et"""
     normalized = (full_text or "").lower()
+    
+    # ÖNEMLİ: "Bestell- und Zahlungsübersicht" UberEats faturalarının karakteristik özelliği
+    if "bestell- und zahlungsübersicht" in normalized or "bestell- und zahlungsübersicht" in full_text:
+        print(f"[INVOICE] ✅ UberEats tespit edildi: 'Bestell- und Zahlungsübersicht' başlığı bulundu")
+        logger.info("UberEats tespit edildi: 'Bestell- und Zahlungsübersicht' başlığı bulundu")
+        return "uber_eats"
+    
+    # UberEats kontrolü
+    if "uber eats" in normalized or "uber eats germany" in normalized:
+        return "uber_eats"
+    
+    # ÖNEMLİ: "Rechnung (Selbstfakturierung)" Wolt faturalarının karakteristik özelliği
+    # Hem "rechnung" hem de "selbstfakturierung" olmalı
+    if "rechnung" in normalized and "selbstfakturierung" in normalized:
+        # Lieferando değilse Wolt olarak işaretle
+        if "lieferando" not in normalized and "yourdelivery" not in normalized and "takeaway" not in normalized:
+            print(f"[INVOICE] ✅ Wolt tespit edildi: 'Rechnung (Selbstfakturierung)' başlığı bulundu")
+            logger.info("Wolt tespit edildi: 'Rechnung (Selbstfakturierung)' başlığı bulundu")
+            return "wolt"
+    
+    # Wolt kontrolü
     if "wolt" in normalized and "lieferando" not in normalized:
         return "wolt"
+    
+    # Lieferando kontrolü
     if "lieferando" in normalized or "yourdelivery" in normalized or "takeaway" in normalized:
         return "lieferando"
+    
     return "unknown"
 
 
@@ -456,6 +730,14 @@ def extract_wolt_fields(full_text: str) -> dict:
     data = {"platform": "wolt"}
     clean_text = (full_text or "").replace("|", " ")
     
+    # Rechnungsnummer extraction - Wolt faturaları için özel format
+    # Format: "Rechnungsnummer DEU/25/HRB274170B/1/35" veya "Rechnungsnummer: DEU/25/HRB274170B/1/35"
+    rechnung_match = re.search(r'Rechnungsnummer[\s:]+([A-Z]{3}/\d{2}/[A-Z0-9]+(?:/\d+)+)', full_text, re.IGNORECASE)
+    if rechnung_match:
+        data["invoice_number"] = rechnung_match.group(1).strip()
+        print(f"[INVOICE] ✅ Wolt Rechnungsnummer bulundu: {data['invoice_number']}")
+        logger.info(f"Wolt Rechnungsnummer bulundu: {data['invoice_number']}")
+    
     supplier_match = re.search(r'Bill To\s+(.*?)Leistungszeitraum', full_text, re.DOTALL)
     if supplier_match:
         block = supplier_match.group(1)
@@ -541,6 +823,224 @@ def extract_wolt_fields(full_text: str) -> dict:
         data["total_amount"] = data.get("end_amount_gross")
     
     return data
+
+
+def extract_uber_eats_fields(full_text: str) -> dict:
+    """UberEats fatura alanlarını çıkar"""
+    data = {"platform": "uber_eats"}
+    clean_text = (full_text or "").replace("|", " ")
+    
+    # Rechnungsnummer extraction - UberEats formatı: UBER_DEU-FIGGGCEE-01-2025-0000001
+    rechnung_match = re.search(r'Rechnungsnummer:\s*([A-Z0-9_\-]+)', full_text, re.IGNORECASE)
+    if rechnung_match:
+        data["invoice_number"] = rechnung_match.group(1).strip()
+        print(f"[INVOICE] ✅ UberEats Rechnungsnummer bulundu: {data['invoice_number']}")
+        logger.info(f"UberEats Rechnungsnummer bulundu: {data['invoice_number']}")
+    
+    # Rechnungsdatum
+    invoice_date_match = re.search(r'Rechnungsdatum:\s*(\d{2}\.\d{2}\.\d{4})', full_text)
+    if invoice_date_match:
+        data["invoice_date"] = parse_date(invoice_date_match.group(1))
+    
+    # Steuerdatum
+    tax_date_match = re.search(r'Steuerdatum\s+(\d{2}\.\d{2}\.\d{4})', full_text)
+    if tax_date_match:
+        data["tax_date"] = parse_date(tax_date_match.group(1))
+    
+    # Zeitraum
+    period_match = re.search(r'Zeitraum:\s*(\d{2}\.\d{2}\.\d{4})\s*-\s*(\d{2}\.\d{2}\.\d{4})', full_text)
+    if period_match:
+        data["period_start"] = parse_date(period_match.group(1))
+        data["period_end"] = parse_date(period_match.group(2))
+    else:
+        # Alternatif format: "vom 11.11.2025 bis zum 16.11.2025"
+        period_match2 = re.search(r'vom\s+(\d{2}\.\d{2}\.\d{4})\s+bis\s+(?:zum\s+)?(\d{2}\.\d{2}\.\d{4})', full_text)
+        if period_match2:
+            data["period_start"] = parse_date(period_match2.group(1))
+            data["period_end"] = parse_date(period_match2.group(2))
+    
+    # Customer company (CC CULINARY COLLECTIVE GmbH)
+    customer_company_match = re.search(r'CC CULINARY COLLECTIVE GmbH', full_text, re.IGNORECASE)
+    if customer_company_match:
+        data["customer_company"] = "CC CULINARY COLLECTIVE GmbH"
+    
+    # Restaurant name
+    # Önce "Restaurant:" etiketi ile arama
+    restaurant_match = re.search(r'Restaurant:\s*([^\n]+)', full_text)
+    if restaurant_match:
+        data["restaurant_name"] = restaurant_match.group(1).strip()
+    else:
+        # Alternatif: "Burger Boost - CC Culinary Collective (Weseler Straße)" formatı
+        # "Rechnung" bölümünde veya "Umsatzbericht" bölümünde olabilir
+        restaurant_match2 = re.search(r'Burger Boost\s*-\s*CC Culinary Collective\s*\(([^\)]+)\)', full_text, re.IGNORECASE | re.DOTALL)
+        if restaurant_match2:
+            location = restaurant_match2.group(1).strip()
+            data["restaurant_name"] = f"Burger Boost - CC Culinary Collective ({location})"
+        else:
+            # Daha genel pattern: "Burger Boost - CC Culinary Collective" (parantez olmadan)
+            restaurant_match3 = re.search(r'(Burger Boost\s*-\s*CC Culinary Collective[^\n]*)', full_text, re.IGNORECASE)
+            if restaurant_match3:
+                data["restaurant_name"] = restaurant_match3.group(1).strip()
+    
+    # Restaurant address (Hohenzollerndamm 58,14199,Berlin, Germany)
+    # "Rechnung" bölümünden sonraki adres bilgisi
+    # Format: "Hohenzollerndamm 58,14199,Berlin\nGermany" veya "Hohenzollerndamm 58,14199,Berlin, Germany"
+    address_match = re.search(r'Hohenzollerndamm\s+(\d+)[,\s]+(\d+)[,\s]+([A-Za-z]+)[,\s]*([A-Za-z]+)?', full_text, re.IGNORECASE | re.MULTILINE)
+    if address_match:
+        street = address_match.group(1)
+        postal = address_match.group(2)
+        city = address_match.group(3)
+        country = address_match.group(4) or "Germany"
+        data["restaurant_address"] = f"Hohenzollerndamm {street}, {postal}, {city}, {country}"
+    else:
+        # Alternatif: "CC CULINARY COLLECTIVE GmbH" sonrasındaki adres satırları
+        address_match2 = re.search(r'CC CULINARY COLLECTIVE GmbH\s+([^\n]+)\s+([^\n]+)', full_text, re.IGNORECASE | re.MULTILINE)
+        if address_match2:
+            line1 = address_match2.group(1).strip()
+            line2 = address_match2.group(2).strip()
+            data["restaurant_address"] = f"{line1}, {line2}"
+    
+    # Handelsregisternummer (HRB 274170)
+    hrb_match = re.search(r'Handelsregisternummer:\s*([A-Z0-9\s]+)', full_text, re.IGNORECASE)
+    if hrb_match:
+        data["business_id"] = hrb_match.group(1).strip()
+    
+    # USt-IdNr. (DE361596531) - Müşteri USt-ID
+    customer_vat_match = re.search(r'USt-IdNr\.:\s*(DE\d+)', full_text, re.IGNORECASE)
+    if customer_vat_match:
+        data["customer_vat"] = customer_vat_match.group(1).strip()
+    
+    # St-Nr. (127/249/52915) - Vergi numarası
+    tax_number_match = re.search(r'St-Nr\.:\s*([\d\/]+)', full_text, re.IGNORECASE)
+    if tax_number_match:
+        data["tax_number"] = tax_number_match.group(1).strip()
+    
+    # Total orders
+    orders_match = re.search(r'(\d+)\s+Bestellungen im Gesamtwert', full_text)
+    if orders_match:
+        data["total_orders"] = int(orders_match.group(1))
+    
+    # Total order value
+    order_value_match = re.search(r'Bestellungen im Gesamtwert von:\s*€\s*([\d,\.]+)', full_text)
+    if order_value_match:
+        data["total_order_value"] = parse_decimal(order_value_match.group(1))
+    
+    # Gross revenue after discounts
+    gross_revenue_match = re.search(r'Bruttoumsatz nach Rabatten\s*€\s*([\d,\.]+)', full_text)
+    if gross_revenue_match:
+        data["gross_revenue_after_discounts"] = parse_decimal(gross_revenue_match.group(1))
+    
+    # Commission own delivery
+    commission_own_match = re.search(r'Provision, eigene Lieferung.*?€\s*([\d,\.]+)', full_text)
+    if commission_own_match:
+        data["commission_own_delivery"] = parse_decimal(commission_own_match.group(1))
+    
+    # Commission pickup
+    commission_pickup_match = re.search(r'Provision, Abholung.*?€\s*([\d,\.]+)', full_text)
+    if commission_pickup_match:
+        data["commission_pickup"] = parse_decimal(commission_pickup_match.group(1))
+    
+    # Uber Eats fee
+    uber_fee_match = re.search(r'Uber Eats Gebühr\s*€\s*([\d,\.]+)', full_text)
+    if uber_fee_match:
+        data["uber_eats_fee"] = parse_decimal(uber_fee_match.group(1))
+    
+    # VAT 19%
+    vat_match = re.search(r'MwSt\.\s*\(19%[^€]*€\s*([\d,\.]+)', full_text)
+    if vat_match:
+        data["vat_19_percent"] = parse_decimal(vat_match.group(1))
+    
+    # Cash collected
+    cash_match = re.search(r'Eingenommenes Bargeld\s*€\s*([\d,\.]+)', full_text)
+    if cash_match:
+        data["cash_collected"] = parse_decimal(cash_match.group(1))
+    
+    # Total payout
+    payout_match = re.search(r'Gesamtauszahlung\s*€\s*([\d,\.]+)', full_text)
+    if payout_match:
+        data["total_payout"] = parse_decimal(payout_match.group(1))
+    
+    # Net amount
+    net_match = re.search(r'Gesamtnettobetrag\s*([\d,\.]+)\s*€', full_text)
+    if net_match:
+        data["net_amount"] = parse_decimal(net_match.group(1))
+    
+    # VAT amount
+    vat_amount_match = re.search(r'Gesamtbetrag USt 19%\s*([\d,\.]+)\s*€', full_text)
+    if vat_amount_match:
+        data["vat_amount"] = parse_decimal(vat_amount_match.group(1))
+    
+    # Total amount
+    total_match = re.search(r'Gesamtbetrag\s*([\d,\.]+)\s*€', full_text)
+    if total_match:
+        data["total_amount"] = parse_decimal(total_match.group(1))
+    
+    return data
+
+
+def create_uber_eats_invoice_doc(communication_doc, pdf_attachment, extracted_data):
+    """UberEats Invoice kaydı oluştur"""
+    invoice_number = extracted_data.get("invoice_number")
+    
+    # Duplicate kontrolü: Sadece invoice_number (Rechnungsnummer) ile kontrol
+    if invoice_number:
+        existing_invoice = frappe.db.exists("Uber Eats Invoice", {"invoice_number": invoice_number})
+        if existing_invoice:
+            print(f"[INVOICE] ⚠️ Fatura zaten işlenmiş (Rechnungsnummer: {invoice_number})")
+            logger.info(f"Fatura zaten işlenmiş (Rechnungsnummer: {invoice_number})")
+            return None
+        print(f"[INVOICE] ✅ Yeni fatura tespit edildi (Rechnungsnummer: {invoice_number})")
+        logger.info(f"Yeni fatura tespit edildi (Rechnungsnummer: {invoice_number})")
+    else:
+        print(f"[INVOICE] ⚠️ Invoice number bulunamadı, geçici numara kullanılacak")
+        logger.warning("Invoice number bulunamadı, geçici numara kullanılacak")
+    
+    invoice = frappe.get_doc({
+        "doctype": "Uber Eats Invoice",
+        "invoice_number": invoice_number or generate_temp_invoice_number(),
+        "invoice_date": extracted_data.get("invoice_date") or frappe.utils.today(),
+        "tax_date": extracted_data.get("tax_date"),
+        "period_start": extracted_data.get("period_start"),
+        "period_end": extracted_data.get("period_end"),
+        "status": "Draft",
+        "supplier_name": extracted_data.get("supplier_name") or "Uber Eats Germany GmbH",
+        "supplier_vat": extracted_data.get("supplier_vat"),
+        "supplier_address": extracted_data.get("supplier_address"),
+        "restaurant_name": extracted_data.get("restaurant_name"),
+        "customer_company": extracted_data.get("customer_company"),
+        "restaurant_address": extracted_data.get("restaurant_address"),
+        "business_id": extracted_data.get("business_id"),
+        "customer_vat": extracted_data.get("customer_vat"),
+        "tax_number": extracted_data.get("tax_number"),
+        "total_orders": extracted_data.get("total_orders") or 0,
+        "total_order_value": extracted_data.get("total_order_value") or 0,
+        "gross_revenue_after_discounts": extracted_data.get("gross_revenue_after_discounts") or 0,
+        "commission_own_delivery": extracted_data.get("commission_own_delivery") or 0,
+        "commission_pickup": extracted_data.get("commission_pickup") or 0,
+        "uber_eats_fee": extracted_data.get("uber_eats_fee") or 0,
+        "vat_19_percent": extracted_data.get("vat_19_percent") or 0,
+        "cash_collected": extracted_data.get("cash_collected") or 0,
+        "total_payout": extracted_data.get("total_payout") or 0,
+        "net_amount": extracted_data.get("net_amount") or 0,
+        "vat_amount": extracted_data.get("vat_amount") or 0,
+        "total_amount": extracted_data.get("total_amount") or 0,
+        "email_subject": communication_doc.subject,
+        "email_from": communication_doc.sender,
+        "received_date": communication_doc.creation,
+        "processed_date": frappe.utils.now(),
+        "extraction_confidence": extracted_data.get("confidence", 55),
+        "raw_text": extracted_data.get("raw_text", "")
+    })
+    
+    # name (ID) field'ını invoice_number (Rechnungsnummer) ile aynı yap
+    final_invoice_number = invoice_number or generate_temp_invoice_number()
+    invoice.name = final_invoice_number
+    
+    invoice.insert(ignore_permissions=True, ignore_mandatory=True)
+    attach_pdf_to_invoice(pdf_attachment, invoice.name, "Uber Eats Invoice")
+    notify_invoice_created("Uber Eats Invoice", invoice.name, invoice.invoice_number, communication_doc.subject)
+    
+    return invoice
 
 
 def parse_decimal(value: str | None):
