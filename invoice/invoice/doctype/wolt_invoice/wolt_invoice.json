@@ -70,26 +70,26 @@
   {
    "fieldname": "invoice_section",
    "fieldtype": "Section Break",
-   "label": "Rechnung"
+  "label": "Invoice"
   },
   {
    "fieldname": "invoice_number",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Rechnungsnummer",
+  "label": "Invoice Number",
    "reqd": 1,
    "unique": 1
   },
   {
    "fieldname": "invoice_date",
    "fieldtype": "Date",
-   "label": "Rechnungsdatum",
+  "label": "Invoice Date",
    "reqd": 1
   },
   {
    "fieldname": "period_start",
    "fieldtype": "Date",
-   "label": "Leistungszeitraum (Ba\u015flang\u0131\u00e7)"
+  "label": "Service Period Start"
   },
   {
    "fieldname": "col_break_period",
@@ -98,49 +98,49 @@
   {
    "fieldname": "period_end",
    "fieldtype": "Date",
-   "label": "Leistungszeitraum (Biti\u015f)"
+  "label": "Service Period End"
   },
   {
    "default": "Draft",
    "fieldname": "status",
    "fieldtype": "Select",
-   "label": "Durum",
+  "label": "Status",
    "options": "Draft\nSubmitted\nCancelled"
   },
   {
    "fieldname": "supplier_section",
    "fieldtype": "Section Break",
-   "label": "Wolt"
+  "label": "Wolt"
   },
   {
    "fieldname": "supplier_name",
    "fieldtype": "Data",
-   "label": "\u015eirket"
+  "label": "Company"
   },
   {
    "fieldname": "supplier_vat",
    "fieldtype": "Data",
-   "label": "USt.-ID"
+  "label": "VAT ID"
   },
   {
    "fieldname": "supplier_address",
    "fieldtype": "Small Text",
-   "label": "Adres"
+  "label": "Address"
   },
   {
    "fieldname": "customer_section",
    "fieldtype": "Section Break",
-   "label": "Restoran"
+  "label": "Restaurant"
   },
   {
    "fieldname": "restaurant_name",
    "fieldtype": "Data",
-   "label": "Restoran Ad\u0131"
+  "label": "Restaurant Name"
   },
   {
    "fieldname": "customer_number",
    "fieldtype": "Data",
-   "label": "M\u00fc\u015fteri / \u0130\u015f ID"
+  "label": "Customer / Business ID"
   },
   {
    "fieldname": "restaurant_address",
@@ -150,26 +150,26 @@
   {
    "fieldname": "goods_section",
    "fieldtype": "Section Break",
-   "label": "Sat\u0131lan \u00dcr\u00fcnler (A)"
+  "label": "Sold Items (A)"
   },
   {
    "fieldname": "goods_net_7",
    "fieldtype": "Currency",
-   "label": "Net %7",
+  "label": "Net 7%",
    "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "goods_vat_7",
    "fieldtype": "Currency",
-   "label": "MwSt %7",
+  "label": "VAT 7%",
    "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "goods_gross_7",
    "fieldtype": "Currency",
-   "label": "Br\u00fct %7",
+  "label": "Gross 7%",
    "precision": "2",
    "read_only": 1
   },
@@ -180,28 +180,28 @@
   {
    "fieldname": "goods_net_19",
    "fieldtype": "Currency",
-   "label": "Net %19",
+  "label": "Net 19%",
    "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "goods_vat_19",
    "fieldtype": "Currency",
-   "label": "MwSt %19",
+  "label": "VAT 19%",
    "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "goods_gross_19",
    "fieldtype": "Currency",
-   "label": "Br\u00fct %19",
+  "label": "Gross 19%",
    "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "goods_totals_section",
    "fieldtype": "Section Break",
-   "label": "Toplam Sat\u0131\u015f"
+  "label": "Sales Totals"
   },
   {
    "bold": 1,
@@ -230,7 +230,7 @@
   {
    "fieldname": "distribution_section",
    "fieldtype": "Section Break",
-   "label": "Wolt Komisyon (B)"
+  "label": "Wolt Commission (B)"
   },
   {
    "fieldname": "distribution_net_total",
@@ -256,7 +256,7 @@
   {
    "fieldname": "netprice_section",
    "fieldtype": "Section Break",
-   "label": "Nettopreis (A - B)"
+  "label": "Net Price (A - B)"
   },
   {
    "fieldname": "netprice_net_7",
@@ -307,7 +307,7 @@
   {
    "fieldname": "netprice_totals_section",
    "fieldtype": "Section Break",
-   "label": "Nettopreis Toplam"
+  "label": "Net Price Totals"
   },
   {
    "bold": 1,
@@ -336,7 +336,7 @@
   {
    "fieldname": "end_amount_section",
    "fieldtype": "Section Break",
-   "label": "Endbetrag"
+  "label": "Final Amount"
   },
   {
    "bold": 1,
@@ -350,7 +350,7 @@
    "bold": 1,
    "fieldname": "end_amount_vat",
    "fieldtype": "Currency",
-   "label": "MwSt",
+  "label": "VAT",
    "precision": "2",
    "read_only": 1
   },
@@ -359,7 +359,7 @@
    "fieldname": "end_amount_gross",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Br\u00fct",
+  "label": "Gross",
    "precision": "2",
    "read_only": 1
   },
@@ -367,7 +367,7 @@
    "collapsible": 1,
    "fieldname": "metadata_section",
    "fieldtype": "Section Break",
-   "label": "Kaynak"
+  "label": "Source"
   },
   {
    "fieldname": "pdf_file",
@@ -411,19 +411,19 @@
   {
    "fieldname": "raw_text",
    "fieldtype": "Long Text",
-   "label": "Ham Metin",
+  "label": "Raw Text",
    "read_only": 1
   },
   {
    "collapsible": 1,
    "fieldname": "notes_section",
    "fieldtype": "Section Break",
-   "label": "Notlar"
+  "label": "Notes"
   },
   {
    "fieldname": "notes",
    "fieldtype": "Text Editor",
-   "label": "A\u00e7\u0131klamalar"
+  "label": "Remarks"
   },
   {
    "fieldname": "amended_from",

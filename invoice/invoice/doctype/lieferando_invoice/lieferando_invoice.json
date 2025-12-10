@@ -78,14 +78,14 @@
   {
    "fieldname": "invoice_section",
    "fieldtype": "Section Break",
-   "label": "Rechnung Informationen"
+  "label": "Invoice Information"
   },
   {
    "bold": 1,
    "fieldname": "invoice_number",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Rechnungsnummer",
+  "label": "Invoice Number",
    "reqd": 1,
    "unique": 1
   },
@@ -94,14 +94,14 @@
    "fieldname": "invoice_date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Datum",
+  "label": "Date",
    "reqd": 1
   },
   {
    "description": "Abrechnungszeitraum Start",
    "fieldname": "period_start",
    "fieldtype": "Date",
-   "label": "Zeitraum Von"
+  "label": "Period From"
   },
   {
    "fieldname": "col_break_1",
@@ -111,7 +111,7 @@
    "description": "Abrechnungszeitraum Ende",
    "fieldname": "period_end",
    "fieldtype": "Date",
-   "label": "Zeitraum Bis"
+  "label": "Period To"
   },
   {
    "default": "Draft",
@@ -126,20 +126,20 @@
    "collapsible": 1,
    "fieldname": "supplier_section",
    "fieldtype": "Section Break",
-   "label": "Lieferant (yd.yourdelivery GmbH)"
+  "label": "Supplier (yd.yourdelivery GmbH)"
   },
   {
    "default": "yd.yourdelivery GmbH",
    "fieldname": "supplier_name",
    "fieldtype": "Data",
-   "label": "Firmenname",
+  "label": "Company Name",
    "reqd": 1
   },
   {
    "default": "Cuvrystr. 50, 52, 54 / Schlesische Str. 34\n10997 Berlin\nDeutschland",
    "fieldname": "supplier_address",
    "fieldtype": "Small Text",
-   "label": "Adresse"
+  "label": "Address"
   },
   {
    "fieldname": "col_break_2",
@@ -149,20 +149,20 @@
    "default": "vip-partner@lieferando.de",
    "fieldname": "supplier_email",
    "fieldtype": "Data",
-   "label": "E-Mail",
+  "label": "Email",
    "options": "Email"
   },
   {
    "default": "+49 (0) 30 208 495 144",
    "fieldname": "supplier_phone",
    "fieldtype": "Data",
-   "label": "Telefon"
+  "label": "Phone"
   },
   {
    "default": "DE266464862",
    "fieldname": "supplier_ust_idnr",
    "fieldtype": "Data",
-   "label": "USt.-IdNr."
+  "label": "VAT ID"
   },
   {
    "default": "ING-DiBa AG",
@@ -180,7 +180,7 @@
    "collapsible": 1,
    "fieldname": "customer_section",
    "fieldtype": "Section Break",
-   "label": "Kunde (Restaurant)"
+  "label": "Customer (Restaurant)"
   },
   {
    "fieldname": "restaurant_name",
@@ -193,7 +193,7 @@
    "fieldname": "customer_number",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Kundennummer",
+  "label": "Customer Number",
    "reqd": 1
   },
   {
@@ -215,25 +215,25 @@
    "description": "Bankkonto f\u00fcr Auszahlung",
    "fieldname": "customer_bank_iban",
    "fieldtype": "Data",
-   "label": "Auszahlungs-IBAN"
+  "label": "Payout IBAN"
   },
   {
    "fieldname": "orders_section",
    "fieldtype": "Section Break",
-   "label": "Bestellungen"
+  "label": "Orders"
   },
   {
    "default": "0",
    "description": "Gesamtanzahl der Bestellungen",
    "fieldname": "total_orders",
    "fieldtype": "Int",
-   "label": "Anzahl Bestellungen"
+  "label": "Total Orders"
   },
   {
    "description": "Gesamtumsatz im Abrechnungszeitraum",
    "fieldname": "total_revenue",
    "fieldtype": "Currency",
-   "label": "Umsatz (Zeitraum)",
+  "label": "Revenue (Period)",
    "precision": "2"
   },
   {
@@ -244,30 +244,30 @@
    "default": "0",
    "fieldname": "online_paid_orders",
    "fieldtype": "Int",
-   "label": "Online Bezahlte Bestellungen"
+  "label": "Online Paid Orders"
   },
   {
    "fieldname": "online_paid_amount",
    "fieldtype": "Currency",
-   "label": "Online Bezahlter Betrag",
+  "label": "Online Paid Amount",
    "precision": "2"
   },
   {
    "fieldname": "fees_section",
    "fieldtype": "Section Break",
-   "label": "Geb\u00fchren"
+  "label": "Fees"
   },
   {
    "default": "30",
    "fieldname": "service_fee_rate",
    "fieldtype": "Percent",
-   "label": "Servicegeb\u00fchr (%)"
+  "label": "Service Fee (%)"
   },
   {
    "description": "30% von Umsatz (z.B. 30% von \u20ac24,00 = \u20ac7,20)",
    "fieldname": "service_fee_amount",
    "fieldtype": "Currency",
-   "label": "Servicegeb\u00fchr Betrag",
+  "label": "Service Fee Amount",
    "precision": "2"
   },
   {
@@ -278,19 +278,19 @@
    "description": "Online-Zahlungen Verwaltungsgeb\u00fchr (z.B. \u20ac0,64 x 1)",
    "fieldname": "admin_fee_amount",
    "fieldtype": "Currency",
-   "label": "Verwaltungsgeb\u00fchr",
+  "label": "Admin Fee",
    "precision": "2"
   },
   {
    "fieldname": "amounts_section",
    "fieldtype": "Section Break",
-   "label": "Betr\u00e4ge"
+  "label": "Amounts"
   },
   {
    "default": "19",
    "fieldname": "tax_rate",
    "fieldtype": "Percent",
-   "label": "MwSt. (%)"
+  "label": "VAT (%)"
   },
   {
    "fieldname": "col_break_amounts_1",
@@ -300,7 +300,7 @@
    "bold": 1,
    "fieldname": "subtotal",
    "fieldtype": "Currency",
-   "label": "Zwischensumme",
+  "label": "Subtotal",
    "precision": "2",
    "reqd": 1
   },
@@ -312,7 +312,7 @@
    "bold": 1,
    "fieldname": "tax_amount",
    "fieldtype": "Currency",
-   "label": "MwSt. Betrag",
+  "label": "VAT Amount",
    "precision": "2",
    "reqd": 1
   },
@@ -324,7 +324,7 @@
    "bold": 1,
    "fieldname": "paid_online_payments",
    "fieldtype": "Currency",
-   "label": "Verrechnet mit Online-Zahlungen",
+  "label": "Offset by Online Payments",
    "precision": "2"
   },
   {
@@ -335,7 +335,7 @@
    "bold": 1,
    "fieldname": "outstanding_amount",
    "fieldtype": "Currency",
-   "label": "Offener Rechnungsbetrag",
+  "label": "Outstanding Invoice Amount",
    "precision": "2"
   },
   {
@@ -347,7 +347,7 @@
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "\u2550\u2550\u2550 GESAMTBETRAG DIESER RECHNUNG \u2550\u2550\u2550",
+  "label": "TOTAL AMOUNT OF THIS INVOICE",
    "precision": "2",
    "reqd": 1
   },
@@ -355,32 +355,32 @@
    "collapsible": 1,
    "fieldname": "payout_section",
    "fieldtype": "Section Break",
-   "label": "Auszahlung"
+  "label": "Payout"
   },
   {
    "description": "Auszahlung auf das Bankkonto",
    "fieldname": "payout_amount",
    "fieldtype": "Currency",
-   "label": "Auszahlungsbetrag",
+  "label": "Payout Amount",
    "precision": "2"
   },
   {
    "fieldname": "outstanding_balance",
    "fieldtype": "Currency",
-   "label": "Ausstehende Onlinebezahlungen",
+  "label": "Outstanding Online Payments",
    "precision": "2"
   },
   {
    "collapsible": 1,
    "fieldname": "orders_detail_section",
    "fieldtype": "Section Break",
-   "label": "Einzelauflistung"
+  "label": "Itemized Listing"
   },
   {
    "bold": 1,
    "fieldname": "ausstehende_am_datum",
    "fieldtype": "Date",
-   "label": "Ausstehende Onlinebezahlungen am",
+  "label": "Outstanding Online Payments On",
    "read_only": 1
   },
   {
@@ -395,7 +395,7 @@
    "bold": 1,
    "fieldname": "rechnungsausgleich_betrag",
    "fieldtype": "Currency",
-   "label": "Rechnungsausgleich (mit Rechnungsnummer)",
+  "label": "Invoice Settlement (with Invoice Number)",
    "precision": "2",
    "read_only": 1
   },
@@ -408,7 +408,7 @@
    "description": "Ausstehende Onlinebezahlungen - Rechnungsausgleich",
    "fieldname": "auszahlung_gesamt",
    "fieldtype": "Currency",
-   "label": "\u2550\u2550\u2550 GESAMTAUSZAHLUNG \u2550\u2550\u2550",
+  "label": "TOTAL PAYOUT",
    "precision": "2",
    "read_only": 1
   },
@@ -443,13 +443,13 @@
    "default": "Now",
    "fieldname": "received_date",
    "fieldtype": "Datetime",
-   "label": "Email Empfangen",
+  "label": "Email Received",
    "read_only": 1
   },
   {
    "fieldname": "processed_date",
    "fieldtype": "Datetime",
-   "label": "Verarbeitet Am",
+  "label": "Processed On",
    "read_only": 1
   },
   {
@@ -470,12 +470,12 @@
    "collapsible": 1,
    "fieldname": "notes_section",
    "fieldtype": "Section Break",
-   "label": "Notizen"
+  "label": "Notes"
   },
   {
    "fieldname": "notes",
    "fieldtype": "Text Editor",
-   "label": "Bemerkungen"
+  "label": "Remarks"
   },
   {
    "fieldname": "amended_from",

@@ -61,31 +61,31 @@
   {
    "fieldname": "invoice_section",
    "fieldtype": "Section Break",
-   "label": "Rechnung"
+  "label": "Invoice"
   },
   {
    "fieldname": "invoice_number",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Rechnungsnummer",
+  "label": "Invoice Number",
    "reqd": 1,
    "unique": 1
   },
   {
    "fieldname": "invoice_date",
    "fieldtype": "Date",
-   "label": "Rechnungsdatum",
+  "label": "Invoice Date",
    "reqd": 1
   },
   {
    "fieldname": "tax_date",
    "fieldtype": "Date",
-   "label": "Steuerdatum"
+  "label": "Tax Date"
   },
   {
    "fieldname": "period_start",
    "fieldtype": "Date",
-   "label": "Zeitraum (Başlangıç)"
+  "label": "Period Start"
   },
   {
    "fieldname": "col_break_period",
@@ -94,55 +94,55 @@
   {
    "fieldname": "period_end",
    "fieldtype": "Date",
-   "label": "Zeitraum (Bitiş)"
+  "label": "Period End"
   },
   {
    "default": "Draft",
    "fieldname": "status",
    "fieldtype": "Select",
-   "label": "Durum",
+  "label": "Status",
    "options": "Draft\nSubmitted\nCancelled"
   },
   {
    "fieldname": "supplier_section",
    "fieldtype": "Section Break",
-   "label": "Uber Eats"
+  "label": "Uber Eats"
   },
   {
    "fieldname": "supplier_name",
    "fieldtype": "Data",
-   "label": "Şirket",
+  "label": "Company",
    "default": "Uber Eats Germany GmbH"
   },
   {
    "fieldname": "supplier_vat",
    "fieldtype": "Data",
-   "label": "USt.-ID"
+  "label": "VAT ID"
   },
   {
    "fieldname": "supplier_address",
    "fieldtype": "Small Text",
-   "label": "Adres"
+  "label": "Address"
   },
   {
    "fieldname": "customer_section",
    "fieldtype": "Section Break",
-   "label": "Restoran"
+  "label": "Restaurant"
   },
   {
    "fieldname": "restaurant_name",
    "fieldtype": "Data",
-   "label": "Restoran Adı"
+  "label": "Restaurant Name"
   },
   {
    "fieldname": "customer_company",
    "fieldtype": "Data",
-   "label": "Müşteri Şirketi"
+  "label": "Customer Company"
   },
   {
    "fieldname": "restaurant_address",
    "fieldtype": "Small Text",
-   "label": "Adres"
+  "label": "Address"
   },
   {
    "fieldname": "col_break_customer",
@@ -151,40 +151,40 @@
   {
    "fieldname": "business_id",
    "fieldtype": "Data",
-   "label": "Handelsregisternummer"
+  "label": "Commercial Register Number"
   },
   {
    "fieldname": "customer_vat",
    "fieldtype": "Data",
-   "label": "USt-IdNr. (Müşteri)"
+  "label": "Customer VAT ID"
   },
   {
    "fieldname": "tax_number",
    "fieldtype": "Data",
-   "label": "St-Nr."
+  "label": "Tax Number"
   },
   {
    "fieldname": "orders_section",
    "fieldtype": "Section Break",
-   "label": "Bestellungen"
+  "label": "Orders"
   },
   {
    "fieldname": "total_orders",
    "fieldtype": "Int",
-   "label": "Anzahl Bestellungen",
+  "label": "Total Orders",
    "read_only": 1
   },
   {
    "fieldname": "total_order_value",
    "fieldtype": "Currency",
-   "label": "Gesamtwert Bestellungen",
+  "label": "Total Order Value",
    "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "gross_revenue_after_discounts",
    "fieldtype": "Currency",
-   "label": "Bruttoumsatz nach Rabatten",
+  "label": "Gross Revenue After Discounts",
    "precision": "2",
    "read_only": 1
   },
@@ -195,33 +195,33 @@
   {
    "fieldname": "commission_own_delivery",
    "fieldtype": "Currency",
-   "label": "Provision, eigene Lieferung",
+  "label": "Commission (Own Delivery)",
    "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "commission_pickup",
    "fieldtype": "Currency",
-   "label": "Provision, Abholung",
+  "label": "Commission (Pickup)",
    "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "fees_section",
    "fieldtype": "Section Break",
-   "label": "Gebühren"
+  "label": "Fees"
   },
   {
    "fieldname": "uber_eats_fee",
    "fieldtype": "Currency",
-   "label": "Uber Eats Gebühr",
+  "label": "Uber Eats Fee",
    "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "vat_19_percent",
    "fieldtype": "Currency",
-   "label": "MwSt. (19%)",
+  "label": "VAT (19%)",
    "precision": "2",
    "read_only": 1
   },
@@ -232,7 +232,7 @@
   {
    "fieldname": "cash_collected",
    "fieldtype": "Currency",
-   "label": "Eingenommenes Bargeld",
+  "label": "Cash Collected",
    "precision": "2",
    "read_only": 1
   },
@@ -241,26 +241,26 @@
    "fieldname": "total_payout",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Gesamtauszahlung",
+  "label": "Total Payout",
    "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "amounts_section",
    "fieldtype": "Section Break",
-   "label": "Rechnungsbeträge"
+  "label": "Invoice Amounts"
   },
   {
    "fieldname": "net_amount",
    "fieldtype": "Currency",
-   "label": "Gesamtnettobetrag",
+  "label": "Net Amount",
    "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "vat_amount",
    "fieldtype": "Currency",
-   "label": "Gesamtbetrag USt 19%",
+  "label": "VAT Amount (19%)",
    "precision": "2",
    "read_only": 1
   },
@@ -272,7 +272,7 @@
    "bold": 1,
    "fieldname": "total_amount",
    "fieldtype": "Currency",
-   "label": "Gesamtbetrag",
+  "label": "Total Amount",
    "precision": "2",
    "read_only": 1
   },
@@ -280,7 +280,7 @@
    "collapsible": 1,
    "fieldname": "metadata_section",
    "fieldtype": "Section Break",
-   "label": "Kaynak"
+  "label": "Source"
   },
   {
    "fieldname": "pdf_file",
@@ -324,19 +324,19 @@
   {
    "fieldname": "raw_text",
    "fieldtype": "Long Text",
-   "label": "Ham Metin",
+  "label": "Raw Text",
    "read_only": 1
   },
   {
    "collapsible": 1,
    "fieldname": "notes_section",
    "fieldtype": "Section Break",
-   "label": "Notlar"
+  "label": "Notes"
   },
   {
    "fieldname": "notes",
    "fieldtype": "Text Editor",
-   "label": "Açıklamalar"
+  "label": "Remarks"
   },
   {
    "fieldname": "amended_from",
