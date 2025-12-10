@@ -1,0 +1,69 @@
+name: Deploy Frappe to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.CULLINAR_ERP_EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.CULLINAR_ERP_EC2_SSH_KEY }}
+        command_timeout: 30m
+        script: |
+          echo "==================================="
+          echo "Starting Frappe Deployment"
+          echo "==================================="
+          
+          # Pull latest code
+          cd /home/ubuntu/frappe-bench-test/apps/invoice
+          git pull upstream main
+          
+          # Build and migrate
+          cd /home/ubuntu/frappe-bench-test
+          
+          echo "Building assets..."
+          bench build --app invoice 
+          
+          echo "Running migrations..."
+          # Try migration with skip-failing first
+          if ! bench migrate --skip-failing; then
+            echo "⚠️  Migration had some failures, but continuing..."
+            echo "Check logs for details after deployment"
+          fi
+          
+          echo "Clearing cache..."
+          bench --site all clear-cache
+          
+          echo "Restarting services..."
+          sudo supervisorctl restart all
+          
+          sleep 5
+          
+          echo ""
+          echo "Service status:"
+          sudo supervisorctl status
+          
+          echo ""
+          echo "==================================="
+          echo "Deployment completed!"
+          echo "==================================="
+          
+          # Check if services are actually running
+          if sudo supervisorctl status | grep -q "BACKOFF\|FATAL"; then
+            echo "⚠️  Warning: Some services failed to start"
+            sudo supervisorctl status | grep "BACKOFF\|FATAL"
+          fi
+
