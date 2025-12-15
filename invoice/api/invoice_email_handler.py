@@ -1,5 +1,6 @@
 import frappe
 import re
+import json
 from datetime import datetime
 
 logger = frappe.logger("invoice.email_handler", allow_site=frappe.local.site)
@@ -92,6 +93,8 @@ def process_invoice_email(doc, method=None):
                 show_summary_notification(stats, doc.subject)
                 return
         
+        # İlk tur: faturaları (Selbstfakturierung) işle, netting raporlarını topla
+        netting_pdfs = []
         for pdf in pdf_attachments:
             try:
                 # UberEats email'lerinde: Sadece "Bestell- und Zahlungsübersicht" başlığı olan PDF'leri işle
@@ -105,13 +108,18 @@ def process_invoice_email(doc, method=None):
                     print(f"[INVOICE] ✅ PDF işlenecek (Bestell- und Zahlungsübersicht bulundu): {pdf.file_name}")
                     logger.info(f"PDF işlenecek (Bestell- und Zahlungsübersicht bulundu): {pdf.file_name}")
                 
-                # Wolt payout report email'lerinde: Sadece "Rechnung(Selbstfakturierung)" başlığı olan PDF'leri işle
+                # Wolt payout report email'lerinde: fatura PDF'lerini hemen işle, netting raporlarını ikinci tura bırak
                 if is_wolt_payout_report:
-                    # PDF içeriğini hızlıca kontrol et - hem "Rechnung" hem "Selbstfakturierung" olmalı
                     has_selbstfakturierung = check_pdf_has_selbstfakturierung(pdf)
                     if not has_selbstfakturierung:
-                        print(f"[INVOICE] ⏭️ PDF atlandı (Rechnung(Selbstfakturierung) yok): {pdf.file_name}")
-                        logger.info(f"PDF atlandı (Rechnung(Selbstfakturierung) yok): {pdf.file_name}")
+                        has_netting_report = check_pdf_has_wolt_netting_report(pdf)
+                        if has_netting_report:
+                            netting_pdfs.append(pdf)
+                            print(f"[INVOICE] 🔄 Netting raporu tespit edildi, ikinci turda eklenecek: {pdf.file_name}")
+                            logger.info(f"Netting raporu tespit edildi (queue): {pdf.file_name}")
+                        else:
+                            print(f"[INVOICE] ⏭️ PDF atlandı (Rechnung(Selbstfakturierung) ya da Netting yok): {pdf.file_name}")
+                            logger.info(f"PDF atlandı (Rechnung(Selbstfakturierung) ya da Netting yok): {pdf.file_name}")
                         continue
                     print(f"[INVOICE] ✅ PDF işlenecek (Rechnung(Selbstfakturierung) bulundu): {pdf.file_name}")
                     logger.info(f"PDF işlenecek (Rechnung(Selbstfakturierung) bulundu): {pdf.file_name}")
@@ -131,6 +139,17 @@ def process_invoice_email(doc, method=None):
                 frappe.log_error(
                     title="Invoice PDF Processing Error",
                     message=f"PDF: {pdf.file_name}\nError: {str(e)}\n{frappe.get_traceback()}"
+                )
+
+        # İkinci tur: netting raporlarını artık oluşmuş Wolt Invoice'lara ekle
+        for net_pdf in netting_pdfs:
+            try:
+                handle_wolt_netting_report(doc, net_pdf)
+            except Exception as e:
+                stats["errors"] += 1
+                frappe.log_error(
+                    title="Wolt Netting PDF Error",
+                    message=f"PDF: {net_pdf.file_name}\nError: {str(e)}\n{frappe.get_traceback()}"
                 )
         
         frappe.db.commit()
@@ -401,6 +420,32 @@ def check_pdf_has_selbstfakturierung(pdf_attachment):
     except Exception as e:
         print(f"[INVOICE] ⚠️ PDF Selbstfakturierung kontrolü hatası: {str(e)}")
         logger.warning(f"PDF Selbstfakturierung kontrolü hatası: {str(e)}")
+        return False
+
+
+def check_pdf_has_wolt_netting_report(pdf_attachment):
+    """PDF içinde 'Übersicht Umsätze und Auszahlungen' başlığı var mı kontrol et (Wolt netting raporu)"""
+    try:
+        import PyPDF2
+        
+        file_doc = frappe.get_doc("File", pdf_attachment.name)
+        file_path = file_doc.get_full_path()
+        
+        with open(file_path, 'rb') as pdf_file:
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            if len(pdf_reader.pages) > 0:
+                first_page_text = pdf_reader.pages[0].extract_text()
+                normalized = (first_page_text or "").lower()
+                
+                has_header = "übersicht umsätze und auszahlungen" in normalized
+                print(f"[INVOICE] PDF Netting header kontrolü: {pdf_attachment.file_name} → {has_header}")
+                logger.debug(f"PDF Netting header kontrolü: {pdf_attachment.file_name} → {has_header}")
+                return has_header
+        
+        return False
+    except Exception as e:
+        print(f"[INVOICE] ⚠️ PDF Netting header kontrolü hatası: {str(e)}")
+        logger.warning(f"PDF Netting header kontrolü hatası: {str(e)}")
         return False
 
 
@@ -723,6 +768,168 @@ def extract_lieferando_fields(full_text: str) -> dict:
         data["supplier_ust_idnr"] = ust_match.group(1)
     
     return data
+
+
+def handle_wolt_netting_report(communication_doc, pdf_attachment):
+    """Wolt netting raporunu ilgili Wolt Invoice kaydına ekle"""
+    try:
+        import PyPDF2
+        
+        file_doc = frappe.get_doc("File", pdf_attachment.name)
+        file_path = file_doc.get_full_path()
+        
+        with open(file_path, 'rb') as pdf_file:
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            full_text = "".join(page.extract_text() for page in pdf_reader.pages)
+        
+        # Rechnungsnummer bul (tablo başlığındaki "Gesamtbetrag" değerini almamak için filtrele)
+        invoice_number = None
+        for m in re.finditer(r'Rechnungsnummer\s*[:\-]?\s*([A-Z0-9\/\-]+)', full_text, re.IGNORECASE):
+            candidate = (m.group(1) or "").strip()
+            if candidate.lower() == "gesamtbetrag":
+                continue
+            invoice_number = candidate
+            break
+        
+        # Eğer üstte bulunamadıysa, PDF içindeki DEU/.. formatını yakala (örn: DEU/25/HRB274170B/1/37)
+        if not invoice_number:
+            deu_matches = re.findall(r'DEU/\d{2}/[A-Z0-9]+(?:/\d+)+', full_text, flags=re.IGNORECASE)
+            if deu_matches:
+                invoice_number = deu_matches[0].strip()
+        
+        # Normalizasyon
+        if invoice_number:
+            invoice_number = invoice_number.upper()
+        
+        if not invoice_number:
+            print(f"[INVOICE] ⚠️ Netting raporunda Rechnungsnummer bulunamadı: {pdf_attachment.file_name}")
+            logger.warning(f"Netting raporunda Rechnungsnummer bulunamadı: {pdf_attachment.file_name}")
+            return
+        
+        existing_invoice = frappe.db.exists("Wolt Invoice", {"invoice_number": invoice_number})
+        if not existing_invoice:
+            print(f"[INVOICE] ⚠️ Netting raporu için Wolt Invoice bulunamadı (Rechnungsnummer: {invoice_number})")
+            logger.warning(f"Netting raporu için Wolt Invoice bulunamadı (Rechnungsnummer: {invoice_number})")
+            return
+        
+        print(f"[INVOICE] ✅ Netting raporu Wolt Invoice'a eklenecek (Rechnungsnummer: {invoice_number})")
+        logger.info(f"Netting raporu Wolt Invoice'a eklenecek (Rechnungsnummer: {invoice_number})")
+        
+        # PDF'i yeni alana attach et
+        attach_pdf_to_invoice_with_field(pdf_attachment, invoice_number, "Wolt Invoice", "netting_report_pdf")
+        
+        # Raw text ve parse edilmiş alanları sakla
+        update_values = {"netting_raw_text": full_text}
+        
+        parsed_fields = extract_netting_fields(full_text)
+        if parsed_fields:
+            update_values["netting_parsed_json"] = json.dumps(parsed_fields, ensure_ascii=True)
+            print(f"[INVOICE] ℹ️ Netting parsed fields: {parsed_fields}")
+            logger.info(f"Netting parsed fields: {parsed_fields}")
+            
+            # Ayrı alanlara yaz (görünür özet)
+            mapping = {
+                "merchant_invoice_number": "netting_merchant_invoice",
+                "merchant_net": "netting_merchant_net",
+                "merchant_vat": "netting_merchant_vat",
+                "merchant_gross": "netting_merchant_gross",
+                "wolt_invoice_number": "netting_wolt_invoice",
+                "wolt_net": "netting_wolt_net",
+                "wolt_vat": "netting_wolt_vat",
+                "wolt_gross": "netting_wolt_gross",
+                "net_payout": "netting_net_payout",
+            }
+            for src, target in mapping.items():
+                if src in parsed_fields and parsed_fields[src] is not None:
+                    update_values[target] = parsed_fields[src]
+        frappe.db.set_value("Wolt Invoice", invoice_number, update_values)
+        frappe.db.commit()
+        
+    except Exception as e:
+        frappe.log_error(
+            title="Wolt Netting Report Processing Error",
+            message=f"PDF: {pdf_attachment.file_name}\nError: {str(e)}\n{frappe.get_traceback()}"
+        )
+
+
+def extract_netting_penalty_amount(full_text: str):
+    """Netting raporundaki ceza/penalty tutarını yakala. Bulamazsa None döner."""
+    if not full_text:
+        return None
+    
+    # Önce ceza ile ilgili anahtar kelimelerle aynı satırdaki miktarı yakala
+    penalty_keywords = [
+        "penalty", "strafe", "konventionalstrafe", "ceza", "cezasi", "cezası",
+        "gebühr", "fee"
+    ]
+    lines = [ln.strip() for ln in full_text.splitlines() if ln.strip()]
+    amount_pattern = r'[-+]?\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}'
+    
+    for ln in lines:
+        lower_ln = ln.lower()
+        if any(k in lower_ln for k in penalty_keywords):
+            amt_match = re.search(amount_pattern, ln)
+            if amt_match:
+                return parse_decimal(amt_match.group(0))
+    
+    # Anahtar kelime yoksa, negatif miktarları tara (ilk negatif miktarı ceza varsay)
+    negative_matches = re.findall(r'-\d{1,3}(?:\.\d{3})*,\d{2}|-\d+,\d{2}', full_text)
+    if negative_matches:
+        return parse_decimal(negative_matches[0])
+    
+    return None
+
+
+def extract_netting_fields(full_text: str) -> dict:
+    """
+    Netting raporundan temel rakamları çıkarır:
+    - merchant_invoice_number / net / vat / gross
+    - wolt_invoice_number / net / vat / gross
+    - net_payout
+    Döndürdüğü değerler parse edilebilenler; bulunamazsa alan boş kalır.
+    """
+    if not full_text:
+        return {}
+    
+    result = {}
+    
+    # Tüm satırları al
+    lines = [ln.strip() for ln in full_text.splitlines() if ln.strip()]
+    
+    # DEU/... içeren satırları sırayla yakala; ilkini merchant, ikincisini wolt varsay
+    invoice_rows = []
+    row_pattern = re.compile(r'(DEU/[A-Z0-9\/]+).*?([-+]?\d[\d\.,]*).*?([-+]?\d[\d\.,]*).*?([-+]?\d[\d\.,]*)')
+    for ln in lines:
+        m = row_pattern.search(ln)
+        if m:
+            invoice_rows.append(m.groups())
+    
+    if invoice_rows:
+        inv, net, vat, gross = invoice_rows[0]
+        result["merchant_invoice_number"] = inv
+        result["merchant_net"] = parse_decimal(net)
+        result["merchant_vat"] = parse_decimal(vat)
+        result["merchant_gross"] = parse_decimal(gross)
+    if len(invoice_rows) > 1:
+        inv, net, vat, gross = invoice_rows[1]
+        result["wolt_invoice_number"] = inv
+        result["wolt_net"] = parse_decimal(net)
+        result["wolt_vat"] = parse_decimal(vat)
+        result["wolt_gross"] = parse_decimal(gross)
+    
+    # Net payout (Nettoauszahlung)
+    payout_match = re.search(r'Nettoauszahlung\s+([\d\.,]+)', full_text, re.IGNORECASE)
+    if payout_match:
+        result["net_payout"] = parse_decimal(payout_match.group(1))
+    else:
+        # Yedek: "Nettoauszahlung" satırında negatif/pozitif miktarları tara
+        payout_line = next((ln for ln in lines if "nettoauszahlung" in ln.lower()), None)
+        if payout_line:
+            amt_match = re.search(r'[-+]?\d[\d\.,]*', payout_line)
+            if amt_match:
+                result["net_payout"] = parse_decimal(amt_match.group(0))
+    
+    return {k: v for k, v in result.items() if v is not None}
 
 
 def extract_wolt_fields(full_text: str) -> dict:
@@ -1083,6 +1290,35 @@ def attach_pdf_to_invoice(pdf_attachment, invoice_name, target_doctype):
         new_file.insert()
         
         frappe.db.set_value(target_doctype, invoice_name, "pdf_file", new_file.file_url)
+        frappe.db.commit()
+        
+    except Exception as e:
+        frappe.log_error(
+            title="PDF Attachment Error",
+            message=f"Error: {str(e)}\n{frappe.get_traceback()}"
+        )
+
+
+def attach_pdf_to_invoice_with_field(pdf_attachment, invoice_name, target_doctype, target_field):
+    """PDF'i belirtilen alana attach et (custom alanlar için)"""
+    try:
+        file_doc = frappe.get_doc("File", pdf_attachment.name)
+        file_content = file_doc.get_content()
+        
+        new_file = frappe.get_doc({
+            "doctype": "File",
+            "file_name": file_doc.file_name,
+            "attached_to_doctype": target_doctype,
+            "attached_to_name": invoice_name,
+            "attached_to_field": target_field,
+            "is_private": 0,
+            "content": file_content,
+            "folder": "Home/Attachments"
+        })
+        new_file.flags.ignore_permissions = True
+        new_file.insert()
+        
+        frappe.db.set_value(target_doctype, invoice_name, target_field, new_file.file_url)
         frappe.db.commit()
         
     except Exception as e:

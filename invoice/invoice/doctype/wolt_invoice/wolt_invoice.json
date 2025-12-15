@@ -53,6 +53,19 @@
   "end_amount_net",
   "end_amount_vat",
   "end_amount_gross",
+  "netting_section",
+  "netting_report_pdf",
+  "netting_raw_text",
+  "netting_merchant_invoice",
+  "netting_merchant_net",
+  "netting_merchant_vat",
+  "netting_merchant_gross",
+  "netting_wolt_invoice",
+  "netting_wolt_net",
+  "netting_wolt_vat",
+  "netting_wolt_gross",
+  "netting_net_payout",
+  "netting_parsed_json",
   "metadata_section",
   "pdf_file",
   "email_subject",
@@ -363,6 +376,93 @@
    "precision": "2",
    "read_only": 1
   },
+  {
+   "collapsible": 1,
+   "fieldname": "netting_section",
+   "fieldtype": "Section Break",
+   "label": "Payout / Netting Report"
+  },
+  {
+   "fieldname": "netting_report_pdf",
+   "fieldtype": "Attach",
+   "label": "Netting Report PDF",
+   "read_only": 1
+  },
+  {
+   "fieldname": "netting_raw_text",
+   "fieldtype": "Long Text",
+   "hidden": 1,
+   "label": "Netting Raw Text",
+   "read_only": 1
+  },
+ {
+  "fieldname": "netting_merchant_invoice",
+  "fieldtype": "Data",
+  "label": "Merchant Invoice No",
+  "read_only": 1
+ },
+ {
+  "fieldname": "netting_merchant_net",
+  "fieldtype": "Currency",
+  "label": "Merchant Net (excl. VAT)",
+  "precision": "2",
+  "read_only": 1
+ },
+ {
+  "fieldname": "netting_merchant_vat",
+  "fieldtype": "Currency",
+  "label": "Merchant VAT",
+  "precision": "2",
+  "read_only": 1
+ },
+ {
+  "fieldname": "netting_merchant_gross",
+  "fieldtype": "Currency",
+  "label": "Merchant Gross",
+  "precision": "2",
+  "read_only": 1
+ },
+ {
+  "fieldname": "netting_wolt_invoice",
+  "fieldtype": "Data",
+  "label": "Wolt Invoice No",
+  "read_only": 1
+ },
+ {
+  "fieldname": "netting_wolt_net",
+  "fieldtype": "Currency",
+  "label": "Wolt Net (excl. VAT)",
+  "precision": "2",
+  "read_only": 1
+ },
+ {
+  "fieldname": "netting_wolt_vat",
+  "fieldtype": "Currency",
+  "label": "Wolt VAT",
+  "precision": "2",
+  "read_only": 1
+ },
+ {
+  "fieldname": "netting_wolt_gross",
+  "fieldtype": "Currency",
+  "label": "Wolt Gross",
+  "precision": "2",
+  "read_only": 1
+ },
+ {
+  "fieldname": "netting_net_payout",
+  "fieldtype": "Currency",
+  "label": "Net Payout",
+  "precision": "2",
+  "read_only": 1
+ },
+ {
+  "collapsible": 1,
+  "fieldname": "netting_parsed_json",
+  "fieldtype": "Long Text",
+  "label": "Netting Parsed Data (JSON)",
+  "read_only": 1
+ },
   {
    "collapsible": 1,
    "fieldname": "metadata_section",
