@@ -69,6 +69,13 @@
   "processed_date",
   "extraction_confidence",
   "raw_text",
+  "ai_validation_section",
+  "ai_validation_status",
+  "ai_validation_summary",
+  "col_break_ai",
+  "ai_validation_date",
+  "ai_validation_confidence",
+  "ai_validation_result",
   "notes_section",
   "notes",
   "amended_from",
@@ -464,6 +471,49 @@
    "fieldtype": "Long Text",
    "hidden": 1,
    "label": "Raw PDF Text",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "ai_validation_section",
+   "fieldtype": "Section Break",
+   "label": "AI Validation"
+  },
+  {
+   "default": "Not Checked",
+   "fieldname": "ai_validation_status",
+   "fieldtype": "Select",
+   "label": "Validation Status",
+   "options": "Not Checked\nValid\nIssues Found\nError",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ai_validation_summary",
+   "fieldtype": "Small Text",
+   "label": "Summary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_ai",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ai_validation_date",
+   "fieldtype": "Datetime",
+   "label": "Last Validated",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ai_validation_confidence",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "AI Score",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ai_validation_result",
+   "fieldtype": "Long Text",
+   "label": "Full Validation Result (JSON)",
    "read_only": 1
   },
   {

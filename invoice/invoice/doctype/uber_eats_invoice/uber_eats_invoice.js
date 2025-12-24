@@ -1,7 +1,7 @@
 // Copyright (c) 2025, invoice and contributors
 // For license information, please see license.txt
 
-frappe.ui.form.on("Lieferando Invoice", {
+frappe.ui.form.on("Uber Eats Invoice", {
 	refresh(frm) {
 		if (!frm.is_new()) {
 			frm.add_custom_button(__("Recheck with AI"), function() {
@@ -33,3 +33,6 @@ frappe.ui.form.on("Lieferando Invoice", {
 		}
 	},
 });
+
+
+
